@@ -1,5 +1,16 @@
 [
   {
+    "slug": "2025-10-03-테스트입니다-111222",
+    "title": "테스트입니다 111222",
+    "date": "2025-10-03",
+    "category": "개발",
+    "tags": [
+      "Next.js"
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/dev/mdx/images/1759474272664-______2025-03-23_133124.png",
+    "excerpt": "# GitHub API를 활용한 서버리스 블로그 구축기\r\n\r\n## GitHub API란?\r\n\r\nGitHub API는 GitHub 저장소의 파일, 커밋, 브랜치 등을 프로그래밍 방식으로 제어할 수 있는 인터페이스입니다. 이를 활용하면 GitHub를 데이터베이스처럼 사용하..."
+  },
+  {
     "slug": "2025-10-03-테스트입니다-111",
     "title": "테스트입니다 111",
     "date": "2025-10-03",
