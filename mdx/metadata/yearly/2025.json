@@ -1,13 +1,13 @@
 [
   {
-    "slug": "2025-10-03-테스트-글작성",
-    "title": "테스트 글작성",
+    "slug": "2025-10-03-테스트입니다",
+    "title": "테스트입니다",
     "date": "2025-10-03",
     "category": "개발",
     "tags": [
-      "Next.js"
+      "next.js"
     ],
-    "thumbnail": "",
-    "excerpt": "# 테스트 입니다. ..."
+    "thumbnail": "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/dev/mdx/images/1759473077798-____.jpg",
+    "excerpt": "# 테스트 입니다2..."
   }
 ]
