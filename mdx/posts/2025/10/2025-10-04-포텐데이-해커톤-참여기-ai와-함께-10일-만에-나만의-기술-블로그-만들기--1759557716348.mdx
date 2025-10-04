@@ -1,0 +1,163 @@
+---
+title: "포텐데이 해커톤 참여기: AI와 함께 10일 만에 나만의 기술 블로그 만들기 🚀"
+date: 2025-10-04 15:01
+category: "사이드 프로젝트"
+tags: ["포텐데이", "Next.js"]
+thumbnail: "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1759557716350-e6de920b-23bc-4dfc-b75a-03293816ca97.png"
+readingTime: "7 min read"
+---
+
+
+연휴를 맞아 특별한 도전을 시작했다. 바로 **비사이드(BSIDE)** 에서 진행하는 온라인 해커톤 **포텐데이(POTEN DAY)** 에 프론트엔드 개발자로 참여한 것이다.
+
+## 🎯 해커톤 참여 계기
+
+평소 알고 지내던 형이 "연휴 동안 하는 해커톤이 있다"며 추천해주셨다. 긴 연휴 동안 사이드 프로젝트를 하나 제대로 완성해보고 싶다는 마음이 컸던 터라 바로 참여를 결정했다.
+
+솔직히 말하면, **혼자서 사이드 프로젝트를 끝까지 완성해본 적이 없었다.** 항상 처음엔 열정적으로 시작하지만 범위를 너무 크게 잡아서 중간에 열정이 식어버리는 패턴이 반복되었다. 이번에는 정말로 제대로 마무리하고 싶었다.
+
+### 포텐데이의 특별함
+
+포텐데이의 취지는 **AI를 활용하여 짧은 시간에 프로젝트를 완성**하는 것이다. 과거의 실패 경험을 돌이켜봤을 때, 이런 제약이 있는 프로그램이 나에게는 오히려 도움이 될 것 같았다.
+
+- ⏰ **명확한 기간 제한**: 10일
+- 🤖 **AI 도구 적극 활용**: Claude, GPT 등
+- 🎯 **완성에 초점**: 완벽함보다는 작동하는 결과물
+
+## 💡 프로젝트 선정: 나만의 기술 블로그
+
+참여 첫날, **10일 동안 무엇을 개발할 것인가?** 를 정해야했다.
+
+Claude와의 브레인스토밍을 통해 아이디어를 결정했다:
+- 📝 **기술 블로그**
+
+결국 **기술 블로그**를 선택한 이유는 다음과 같다:
+
+1. **실용성**: 완성 후에도 지속적으로 사용할 수 있음
+2. **학습 효과**: 개발하면서 글쓰는 습관도 기를 수 있음
+3. **적절한 난이도**: 10일 내에 완성 가능한 범위
+4. **개인적 욕구**: 예전부터 기술 블로그를 운영해보고 싶었음
+
+## 🛠️ 기술 스택 선정
+
+### 핵심 프레임워크: Next.js
+
+```
+// Next.js 13+ App Router 사용
+// SEO 최적화와 서버사이드 렌더링 지원
+```
+
+**선택 이유**:
+- 🔍 **SEO 최적화**: 기술 블로그에 필수적
+- ⚡ **성능**: 정적 생성과 서버사이드 렌더링 지원
+- 📱 **반응형**: 모바일 친화적
+- 🚀 **배포 용이성**: Vercel과의 완벽한 호환
+
+### 스타일링: Tailwind CSS + shadcn/ui
+
+```
+npm install tailwindcss
+npx shadcn-ui@latest init
+```
+
+**선택 이유**:
+- 🎨 **빠른 개발**: 유틸리티 클래스로 신속한 스타일링
+- 🧩 **컴포넌트 라이브러리**: shadcn/ui로 시간 절약
+- 📐 **일관성**: 디자인 시스템 구축 용이
+
+### 콘텐츠 관리: MDX + GitHub API
+
+가장 신기했던 부분이었다. 벡엔드없이 구현이 될까 고민하던중 Claude가 **GitHub API** 를 알려주었다. 그래서 일반적인 **별도 데이터베이스나 서버** 대신 **GitHub를 데이터 저장소로 활용** 하는 완전한 **서버리스 아키텍처**로 구성하기로 했다.
+
+```
+// 예시 : GitHub API를 통한 서버리스 글 작성
+const response = await fetch(\`https://api.github.com/repos/${owner}/${repo}/contents/posts`, {
+  method: 'PUT',
+  headers: {
+    'Authorization': `token ${GITHUB_TOKEN}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    message: `Add new post: ${title}`,
+    content: base64Content,
+  }),
+});
+```
+
+**GitHub API 활용의 장점**:
+- 💰 **비용 효율성**: 서버리스, 무료
+- 📝 **버전 관리**: Git의 강력한 버전 관리 기능
+- 🔒 **백업**: 자동으로 모든 글이 백업됨
+- 🔧 **개발자 친화적**: 익숙한 Git 워크플로우
+
+### 폴더 구조 설계
+
+메타데이터 기반의 분류 시스템을 구상했다:
+
+```
+mdx/
+├── posts/
+│   ├── 2025/
+│   │   ├── 01/
+│   │   ├── 02/
+│   │   └── ...
+├── metadata/
+│   ├── categories/
+│   │   ├── 개발.json
+│   │   └── 일상.json
+│   ├── tags/
+│   │   ├── React.json
+│   │   └── Next.js.json
+│   └── yearly/
+│       ├── 2024.json
+│       └── 2025.json
+```
+
+이렇게 구조화하면:
+- 📅 **년도별 검색**: 시간순 정렬 및 필터링
+- 🏷️ **카테고리별 분류**: 주제별 글 모아보기
+- 🔖 **태그 시스템**: 세분화된 분류 가능
+
+## 💬 댓글 시스템: Giscus
+
+사용자 참여를 위한 댓글 기능도 계획했다.
+
+```
+// Giscus 설정
+<script src="https://giscus.app/client.js"
+        data-repo="[ENTER REPO HERE]"
+        data-repo-id="[ENTER REPO ID HERE]"
+        data-category="[ENTER CATEGORY NAME HERE]"
+        data-category-id="[ENTER CATEGORY ID HERE]"
+        data-mapping="pathname"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="light"
+        data-lang="ko"
+        crossorigin="anonymous"
+        async>
+</script>
+```
+
+**Giscus 선택 이유**:
+- 🆓 **무료**: 오픈소스 프로젝트
+- 🎨 **깔끔한 UI**: Utterances보다 개선된 디자인
+- 💬 **GitHub Discussions 기반**: 익숙한 GitHub 생태계
+- 🔧 **쉬운 설정**: 복잡한 서버 구성 불필요
+
+## 🚀 다짐과 기대
+
+이번 포텐데이를 통해 **완성의 경험**을 쌓고 싶다. 그동안 중도에 포기했던 프로젝트들과 달리, 이번에는 다음과 같은 전략을 세웠다:
+
+1. **명확한 MVP 정의**: 핵심 기능만 먼저 완성
+2. **일일 진행상황 체크**: 매일 작은 성취 확인
+3. **AI 도구 적극 활용**: 막히는 부분은 Claude와 함께 해결
+
+앞으로 남은 기간 동안 개발에 집중하여 **사이드 프로젝트**를 만들어보겠다! 
+
+그리고 이 블로그가 완성되면, 개발 과정에서 겪은 시행착오와 배운 점들을 차근차근 글로 남겨볼 예정이다. 🎯
+
+---
+
+*포텐데이에서 만나는 다른 개발자분들의 프로젝트도 기대가 된다. 모두 함께 성공적인 해커톤이 되길!* ✨
