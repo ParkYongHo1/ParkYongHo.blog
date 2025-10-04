@@ -86,7 +86,7 @@ async function processImage(
   const uint8Array = new Uint8Array(arrayBuffer);
   const content = Buffer.from(uint8Array).toString("base64");
 
-  const url = `https://raw.githubusercontent.com/${owner}/${repo}/dev/${filePath}`;
+  const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/${filePath}`;
 
   return { filePath, content, url };
 }
@@ -121,7 +121,7 @@ async function fetchExistingMetadata(
 ): Promise<PostMetadata[]> {
   try {
     const { data: file } = await githubApi.get(
-      `/repos/${owner}/${repo}/contents/${path}?ref=dev`
+      `/repos/${owner}/${repo}/contents/${path}?ref=main`
     );
     const content = Buffer.from(file.content, "base64").toString("utf-8");
 
@@ -187,7 +187,7 @@ async function commitFilesToGitHub(
   commitMessage: string
 ): Promise<void> {
   const { data: refData } = await githubApi.get(
-    `/repos/${owner}/${repo}/git/ref/heads/dev`
+    `/repos/${owner}/${repo}/git/ref/heads/main`
   );
   const latestCommitSha = refData.object.sha;
 
@@ -246,7 +246,7 @@ async function commitFilesToGitHub(
     }
   );
 
-  await githubApi.patch(`/repos/${owner}/${repo}/git/refs/heads/dev`, {
+  await githubApi.patch(`/repos/${owner}/${repo}/git/refs/heads/main`, {
     sha: newCommit.sha,
   });
 }
@@ -430,7 +430,7 @@ export async function POST(request: NextRequest) {
       thumbnailUrl,
       contentImagesCount: contentImages.length,
       readingTime: stats.text,
-      branch: "dev",
+      branch: "main",
     });
   } catch (error) {
     console.error("API 라우트 오류:", error);
