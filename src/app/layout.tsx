@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
+import Header from "@/components/layouts/Headers";
 
 export const metadata: Metadata = {
   title: "ParkYongHo1.blog",
@@ -15,8 +16,11 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head></head>
-      <body className="w-[90%] mx-auto" suppressHydrationWarning>
-        <QueryProvider>{children}</QueryProvider>
+      <body suppressHydrationWarning>
+        <Header />
+        <main className="w-[80%] mx-auto">
+          <QueryProvider>{children}</QueryProvider>
+        </main>
       </body>
     </html>
   );

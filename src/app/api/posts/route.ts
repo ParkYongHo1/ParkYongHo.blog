@@ -1,11 +1,8 @@
-// src/app/api/posts/route.ts
+// app/api/posts/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import axios, { AxiosInstance } from "axios";
 import readingTime from "reading-time";
 import dayjs from "dayjs";
-// ============================================
-// 타입 정의
-// ============================================
 
 interface PostMetadata {
   slug: string;
@@ -29,10 +26,6 @@ interface FileToCommit {
   content: string;
 }
 
-// ============================================
-// 유틸리티 함수
-// ============================================
-
 function validateEnvironment(): GitHubConfig | null {
   const token = process.env.GITHUB_TOKEN;
   const owner = process.env.GITHUB_OWNER;
@@ -55,11 +48,14 @@ function createGitHubClient(token: string): AxiosInstance {
   });
 }
 
-function generateSlug(title: string): string {
-  return title
+function generateSlug(title: string, timestamp: number): string {
+  const baseSlug = title
     .toLowerCase()
     .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-가-힣]/g, "");
+    .replace(/[^a-z0-9-가-힣]/g, "")
+    .slice(0, 50);
+
+  return `${baseSlug}-${timestamp}`;
 }
 
 function parseTags(tagsString: string): string[] {
@@ -76,16 +72,21 @@ async function processImage(
   owner: string,
   repo: string
 ): Promise<{ filePath: string; content: string; url: string }> {
-  const timestamp = Date.now();
-  const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").toLowerCase();
-  const imageName = `${timestamp}-${sanitizedName}`;
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("파일 크기는 5MB를 초과할 수 없습니다.");
+  }
+
+  const uuid = crypto.randomUUID();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const imageName = `${Date.now()}-${uuid}.${ext}`;
   const filePath = `mdx/images/${imageName}`;
 
   const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const content = buffer.toString("base64");
+  const uint8Array = new Uint8Array(arrayBuffer);
+  const content = Buffer.from(uint8Array).toString("base64");
 
-  const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/${filePath}`;
+  const url = `https://raw.githubusercontent.com/${owner}/${repo}/dev/${filePath}`;
 
   return { filePath, content, url };
 }
@@ -112,10 +113,6 @@ ${content}
 `;
 }
 
-// ============================================
-// 메타데이터 처리
-// ============================================
-
 async function fetchExistingMetadata(
   githubApi: AxiosInstance,
   owner: string,
@@ -124,10 +121,18 @@ async function fetchExistingMetadata(
 ): Promise<PostMetadata[]> {
   try {
     const { data: file } = await githubApi.get(
-      `/repos/${owner}/${repo}/contents/${path}?ref=main`
+      `/repos/${owner}/${repo}/contents/${path}?ref=dev`
     );
     const content = Buffer.from(file.content, "base64").toString("utf-8");
-    return JSON.parse(content);
+
+    try {
+      return JSON.parse(content);
+    } catch (parseError) {
+      console.warn(
+        `깨진 메타데이터 파일 발견: ${path}. 빈 배열로 초기화합니다.`
+      );
+      return [];
+    }
   } catch (error: any) {
     if (error.response?.status === 404) {
       return [];
@@ -174,10 +179,6 @@ async function updateYearlyMetadata(
   return JSON.stringify(posts, null, 2);
 }
 
-// ============================================
-// GitHub 커밋
-// ============================================
-
 async function commitFilesToGitHub(
   githubApi: AxiosInstance,
   owner: string,
@@ -186,7 +187,7 @@ async function commitFilesToGitHub(
   commitMessage: string
 ): Promise<void> {
   const { data: refData } = await githubApi.get(
-    `/repos/${owner}/${repo}/git/ref/heads/main`
+    `/repos/${owner}/${repo}/git/ref/heads/dev`
   );
   const latestCommitSha = refData.object.sha;
 
@@ -195,12 +196,41 @@ async function commitFilesToGitHub(
   );
   const baseTreeSha = commitData.tree.sha;
 
-  const tree = files.map((file) => ({
-    path: file.path,
-    mode: "100644" as const,
-    type: "blob" as const,
-    content: file.content,
-  }));
+  const tree = await Promise.all(
+    files.map(async (file) => {
+      let blobContent;
+      let encoding: "utf-8" | "base64";
+
+      const isTextFile =
+        file.path.endsWith(".mdx") ||
+        file.path.endsWith(".json") ||
+        file.path.endsWith(".md") ||
+        file.path.endsWith(".txt");
+
+      if (isTextFile) {
+        blobContent = file.content;
+        encoding = "utf-8";
+      } else {
+        blobContent = file.content;
+        encoding = "base64";
+      }
+
+      const { data: blob } = await githubApi.post(
+        `/repos/${owner}/${repo}/git/blobs`,
+        {
+          content: blobContent,
+          encoding: encoding,
+        }
+      );
+
+      return {
+        path: file.path,
+        mode: "100644" as const,
+        type: "blob" as const,
+        sha: blob.sha,
+      };
+    })
+  );
 
   const { data: newTree } = await githubApi.post(
     `/repos/${owner}/${repo}/git/trees`,
@@ -216,7 +246,7 @@ async function commitFilesToGitHub(
     }
   );
 
-  await githubApi.patch(`/repos/${owner}/${repo}/git/refs/heads/main`, {
+  await githubApi.patch(`/repos/${owner}/${repo}/git/refs/heads/dev`, {
     sha: newCommit.sha,
   });
 }
@@ -229,14 +259,9 @@ async function createPostWithMetadata(
   mdxContent: string,
   post: PostMetadata,
   year: number,
-  imageFilePath?: string,
-  imageContent?: string
+  additionalFiles: FileToCommit[]
 ): Promise<void> {
-  const files: FileToCommit[] = [];
-
-  if (imageFilePath && imageContent) {
-    files.push({ path: imageFilePath, content: imageContent });
-  }
+  const files: FileToCommit[] = [...additionalFiles];
 
   files.push({ path: mdxFilePath, content: mdxContent });
 
@@ -280,10 +305,6 @@ async function createPostWithMetadata(
   );
 }
 
-// ============================================
-// 메인 핸들러
-// ============================================
-
 export async function POST(request: NextRequest) {
   try {
     if (process.env.NODE_ENV === "production") {
@@ -292,6 +313,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
     const config = validateEnvironment();
     if (!config) {
       return NextResponse.json(
@@ -302,14 +324,26 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const title = formData.get("title") as string;
-    const content = formData.get("content") as string;
+    let content = formData.get("content") as string;
     const category = formData.get("category") as string;
     const tagsString = formData.get("tags") as string;
     const thumbnailFile = formData.get("thumbnail") as File | null;
 
-    const stats = readingTime(content);
+    const contentImageCount = parseInt(
+      (formData.get("contentImageCount") as string) || "0"
+    );
+    const contentImages: File[] = [];
+    const contentImageIds: string[] = [];
 
-    const slug = generateSlug(title);
+    for (let i = 0; i < contentImageCount; i++) {
+      const file = formData.get(`contentImage_${i}`) as File;
+      const id = formData.get(`contentImageId_${i}`) as string;
+      if (file && id) {
+        contentImages.push(file);
+        contentImageIds.push(id);
+      }
+    }
+
     const now = dayjs();
     const timestamp = now.valueOf();
     const dateStr = now.format("YYYY-MM-DD HH:mm");
@@ -317,15 +351,14 @@ export async function POST(request: NextRequest) {
     const year = now.year();
     const month = now.format("MM");
 
-    const fileName = `${dateOnly}-${slug}-${timestamp}.mdx`;
+    const slug = generateSlug(title, timestamp);
+    const fileName = `${dateOnly}-${slug}.mdx`;
     const filePath = `mdx/posts/${year}/${month}/${fileName}`;
 
     const tags = parseTags(tagsString);
+    const additionalFiles: FileToCommit[] = [];
 
     let thumbnailUrl = "";
-    let imageFilePath = "";
-    let imageContent = "";
-
     if (thumbnailFile && thumbnailFile.size > 0) {
       const imageData = await processImage(
         thumbnailFile,
@@ -333,9 +366,28 @@ export async function POST(request: NextRequest) {
         config.repo
       );
       thumbnailUrl = imageData.url;
-      imageFilePath = imageData.filePath;
-      imageContent = imageData.content;
+      additionalFiles.push({
+        path: imageData.filePath,
+        content: imageData.content,
+      });
     }
+
+    for (let i = 0; i < contentImages.length; i++) {
+      const file = contentImages[i];
+      const tempId = contentImageIds[i];
+
+      const imageData = await processImage(file, config.owner, config.repo);
+      additionalFiles.push({
+        path: imageData.filePath,
+        content: imageData.content,
+      });
+
+      const escapedTempId = tempId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`\\(${escapedTempId}\\)`, "g");
+      content = content.replace(regex, `(${imageData.url})`);
+    }
+
+    const stats = readingTime(content);
 
     const mdxContent = createMDXContent(
       title,
@@ -348,7 +400,7 @@ export async function POST(request: NextRequest) {
     );
 
     const postMetadata: PostMetadata = {
-      slug: `${dateStr}-${slug}`,
+      slug: `${dateOnly}-${slug}`,
       title,
       date: dateStr,
       category: category || "Uncategorized",
@@ -368,17 +420,17 @@ export async function POST(request: NextRequest) {
       mdxContent,
       postMetadata,
       year,
-      imageFilePath,
-      imageContent
+      additionalFiles
     );
 
     return NextResponse.json({
       success: true,
-      slug: `${dateStr}-${slug}`,
+      slug: `${dateOnly}-${slug}`,
       fileName,
       thumbnailUrl,
+      contentImagesCount: contentImages.length,
       readingTime: stats.text,
-      branch: "main",
+      branch: "dev",
     });
   } catch (error) {
     console.error("API 라우트 오류:", error);
@@ -386,6 +438,13 @@ export async function POST(request: NextRequest) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const message = error.response?.data?.message;
+
+      if (status === 429) {
+        return NextResponse.json(
+          { error: "GitHub API 요청 한도 초과. 잠시 후 다시 시도해주세요." },
+          { status: 429 }
+        );
+      }
 
       return NextResponse.json(
         { error: `GitHub API 오류: ${message}` },
