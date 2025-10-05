@@ -1,103 +1,218 @@
+import Link from "next/link";
+import axios from "axios";
+import thumbnail from "@/asset/thumbnail.svg";
 import Image from "next/image";
+import calendar from "@/asset/calendar.svg";
+import readingTimer from "@/asset/readingTime.svg";
+interface PostMetadata {
+  slug: string;
+  title: string;
+  date: string;
+  category: string;
+  tags: string[];
+  thumbnail: string;
+  excerpt: string;
+  readingTime: string;
+}
 
-export default function Home() {
+async function getAllPosts(): Promise<PostMetadata[]> {
+  try {
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+    const token = process.env.GITHUB_TOKEN;
+
+    const yearsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts`;
+    const { data: years } = await axios.get(yearsUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
+
+    const allPosts: PostMetadata[] = [];
+
+    for (const year of years) {
+      if (year.type !== "dir") continue;
+
+      const monthsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts/${year.name}`;
+      const { data: months } = await axios.get(monthsUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+        },
+      });
+
+      for (const month of months) {
+        if (month.type !== "dir") continue;
+
+        const postsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts/${year.name}/${month.name}`;
+        const { data: files } = await axios.get(postsUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+          },
+        });
+
+        for (const file of files) {
+          if (!file.name.endsWith(".mdx")) continue;
+
+          try {
+            const { data: content } = await axios.get(file.download_url);
+            const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+            const match = content.match(frontmatterRegex);
+
+            if (!match) continue;
+
+            const frontmatter = match[1];
+            const markdownContent = match[2];
+
+            const metadata: any = {};
+            frontmatter.split("\n").forEach((line: string) => {
+              const [key, ...valueParts] = line.split(":");
+              if (key && valueParts.length) {
+                const value = valueParts
+                  .join(":")
+                  .trim()
+                  .replace(/^["']|["']$/g, "");
+                if (key === "tags") {
+                  metadata[key] = value
+                    .replace(/^\[|\]$/g, "")
+                    .split(",")
+                    .map((t: string) => t.trim().replace(/^["']|["']$/g, ""));
+                } else {
+                  metadata[key] = value;
+                }
+              }
+            });
+
+            // 이미지 마크다운 제거하고 excerpt 생성
+            const cleanContent = markdownContent
+              .replace(/!\[.*?\]\(.*?\)/g, "") // 이미지 마크다운 제거
+              .replace(/#{1,6}\s/g, "") // 헤딩 마크다운 제거
+              .replace(/\*\*(.*?)\*\*/g, "$1") // 볼드 마크다운 제거
+              .replace(/\*(.*?)\*/g, "$1") // 이탤릭 마크다운 제거
+              .replace(/`(.*?)`/g, "$1") // 인라인 코드 마크다운 제거
+              .replace(/```[\s\S]*?```/g, "") // 코드 블록 제거
+              .trim();
+
+            const slug = file.name.replace(".mdx", "");
+
+            allPosts.push({
+              slug,
+              title: metadata.title,
+              date: metadata.date,
+              category: metadata.category,
+              tags: metadata.tags || [],
+              thumbnail: metadata.thumbnail,
+              excerpt: cleanContent.slice(0, 150) + "...",
+              readingTime: metadata.readingTime,
+            });
+          } catch (error) {
+            console.error(`파일 처리 실패: ${file.name}`, error);
+          }
+        }
+      }
+    }
+
+    return allPosts.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  } catch (error) {
+    console.error("포스트 목록 조회 실패:", error);
+    return [];
+  }
+}
+export default async function PostsAllPage() {
+  const posts = await getAllPosts();
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen py-12">
+      <div className="p-0">
+        <div className="mb-12">
+          <p className="text-gray-600">총 {posts.length}개의 포스트</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {posts.map((post) => (
+            <Link
+              key={post.slug}
+              href={`/posts/${post.slug}`}
+              className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden max-w-sm mx-auto w-full"
+            >
+              <div className="relative w-full h-48 bg-gray-100">
+                {post.thumbnail ? (
+                  <img
+                    src={post.thumbnail}
+                    alt={post.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <Image
+                    src={thumbnail}
+                    alt="기본 썸네일"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                )}
+              </div>
+
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                    {post.category}
+                  </span>
+                </div>
+
+                <h2 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors line-clamp-2">
+                  {post.title}
+                </h2>
+
+                <p className="text-xs text-gray-600 mb-4 line-clamp-3">
+                  {post.excerpt}
+                </p>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {post.tags.slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                  {post.tags.length > 3 && (
+                    <span className="text-xs text-gray-400">
+                      +{post.tags.length - 3}
+                    </span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Image
+                      src={calendar}
+                      alt="날짜"
+                      width={20}
+                      height={20}
+                      className="mr-1"
+                    />
+                    {post.date}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Image
+                      src={readingTimer}
+                      alt="읽는 시간"
+                      width={20}
+                      height={20}
+                      className="mr-1"
+                    />
+                    <span>{post.readingTime}</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

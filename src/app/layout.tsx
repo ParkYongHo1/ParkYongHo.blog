@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
 import Header from "@/components/layouts/Headers";
+import Footer from "@/components/layouts/Footer";
+import UpDownButton from "@/components/shared/FloatingButtons";
 
 export const metadata: Metadata = {
   title: "ParkYongHo1.blog",
@@ -21,6 +23,8 @@ export default function RootLayout({
         <main className="w-[80%] mx-auto">
           <QueryProvider>{children}</QueryProvider>
         </main>
+        <UpDownButton />
+        <Footer />
       </body>
     </html>
   );

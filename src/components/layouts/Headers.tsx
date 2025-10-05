@@ -1,39 +1,22 @@
-// src/components/Header.tsx
 "use client";
 
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useGitHubStore } from "@/store/githubStore";
-
+import github from "@/asset/github.svg";
 export default function Header() {
-  const { profile, loading, fetchGitHubData } = useGitHubStore();
-
+  const { profile, fetchGitHubData } = useGitHubStore();
   useEffect(() => {
     if (!profile) {
       fetchGitHubData();
     }
   }, [profile, fetchGitHubData]);
 
-  if (loading) {
-    return (
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
-              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
   return (
-    <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+    <header className="w-full border-b border-gray-200 bg-white sticky top-0 z-50">
+      <div className="w-[80%] mx-auto">
+        <div className="flex items-center justify-between h-18">
           <Link
             href="/"
             className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
@@ -42,17 +25,28 @@ export default function Header() {
               {profile?.login || "ParkYongHo1"}.blog
             </h1>
           </Link>
-
-          {profile?.avatarUrl && (
-            <Image
-              src={profile.avatarUrl}
-              alt={profile.name || "Profile"}
-              width={50}
-              height={50}
-              className="rounded-full"
-              unoptimized
-            />
-          )}
+          <div className="flex items-center space-x-4">
+            <Link
+              href={`https://github.com/ParkYongHo1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+            >
+              <Image src={github} alt="GitHub" width={28} height={28} />
+            </Link>
+            {profile?.avatarUrl && (
+              <Link href="/about" className="flex items-center space-x-3">
+                <Image
+                  src={profile.avatarUrl}
+                  alt={profile.name || "Profile"}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                  unoptimized
+                />
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </header>

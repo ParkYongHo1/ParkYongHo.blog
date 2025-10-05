@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
     }
 
     const stats = readingTime(content);
+    const minutes = Math.ceil(stats.minutes);
+    const readingTimeText = `${minutes}분`;
 
     const mdxContent = createMDXContent(
       title,
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
       tags,
       thumbnailUrl,
       content,
-      stats.text
+      readingTimeText
     );
 
     const postMetadata: PostMetadata = {
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest) {
       tags,
       thumbnail: thumbnailUrl,
       excerpt: content.slice(0, 150) + "...",
-      readingTime: stats.text,
+      readingTime: readingTimeText,
     };
 
     const githubApi = createGitHubClient(config.token);
