@@ -49,7 +49,6 @@ ${summaryData.keyPoints
 ${summaryData.conclusion}`;
   };
 
-  // AI 요약 생성
   const generateAISummary = async () => {
     setIsGenerating(true);
     setIsTransitioning(true);
@@ -166,9 +165,33 @@ ${summaryData.conclusion}`;
     hr: ({ ...props }: React.ComponentPropsWithoutRef<"hr">) => (
       <hr className="my-8 border-gray-300" {...props} />
     ),
-
     img: ({ src, alt }: React.ComponentPropsWithoutRef<"img">) => {
       if (!src || typeof src !== "string") return null;
+
+      // URL 유효성 검사
+      const isValidUrl = (url: string) => {
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          return url.startsWith("/");
+        }
+      };
+
+      // 유효하지 않은 URL이면 일반 img 태그 사용
+      if (!isValidUrl(src)) {
+        return (
+          <span className="flex justify-center my-4 block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={alt || "이미지"}
+              className="max-w-full h-auto rounded-lg"
+            />
+          </span>
+        );
+      }
+
       return (
         <span className="flex justify-center my-4 block">
           <span className="relative block w-full max-w-3xl mx-auto h-auto min-h-[300px]">
@@ -204,7 +227,6 @@ ${summaryData.conclusion}`;
   return (
     <article className="prose prose-lg max-w-none bg-white my-4">
       <div className="min-h-[500px] py-4 prose prose-sm max-w-none border-t">
-        {/* 요약 버튼 */}
         <div className="flex justify-end px-4 mb-4 not-prose">
           {!isAISummary ? (
             <button
@@ -248,7 +270,7 @@ ${summaryData.conclusion}`;
             </div>
           </div>
         )}
-        {/* 로딩 스피너 (요약 생성 중) */}
+
         {isGenerating && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mb-4"></div>
@@ -258,7 +280,6 @@ ${summaryData.conclusion}`;
           </div>
         )}
 
-        {/* 본문 내용 */}
         {!isGenerating && (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
