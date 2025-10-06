@@ -1,18 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useGitHubStore } from "@/store/githubStore";
 import github from "@/asset/github.svg";
 export default function Header() {
-  const { profile, fetchGitHubData } = useGitHubStore();
-  useEffect(() => {
-    if (!profile) {
-      fetchGitHubData();
-    }
-  }, [profile, fetchGitHubData]);
-
   return (
     <header className="w-full border-b border-gray-200 bg-white sticky top-0 z-50">
       <div className="w-[80%] mx-auto">
@@ -22,7 +13,7 @@ export default function Header() {
             className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
           >
             <h1 className="text-xl font-bold text-gray-900">
-              {profile?.login || "ParkYongHo1"}.blog
+              ParkYongHo1.blog
             </h1>
           </Link>
           <div className="flex items-center space-x-4">
@@ -34,18 +25,6 @@ export default function Header() {
             >
               <Image src={github} alt="GitHub" width={28} height={28} />
             </Link>
-            {profile?.avatarUrl && (
-              <Link href="/about" className="flex items-center space-x-3">
-                <Image
-                  src={profile.avatarUrl}
-                  alt={profile.name || "Profile"}
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                  unoptimized
-                />
-              </Link>
-            )}
           </div>
         </div>
       </div>

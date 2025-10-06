@@ -50,14 +50,19 @@ async function getPostBySlug(slug: string): Promise<PostData | null> {
       },
     });
 
-    const targetFile = files.find(
-      (file: GitHubFile) => file.name === `${decodedSlug}.mdx`
-    );
+    const targetFile = files.find((file: GitHubFile) => {
+      const fileName = file.name.replace(".mdx", "");
+      return (
+        fileName === decodedSlug ||
+        fileName.includes(decodedSlug) ||
+        decodeURIComponent(fileName) === decodedSlug
+      );
+    });
 
     if (!targetFile) return null;
 
     const { data: content } = await axios.get<string>(targetFile.download_url);
-    const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+    const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
     const match = content.match(frontmatterRegex);
 
     if (!match) return null;
