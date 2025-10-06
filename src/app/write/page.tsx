@@ -2,7 +2,6 @@
 import Image from "next/image";
 import axios from "axios";
 import { usePostStore } from "@/store/postStore";
-import thumbnail from "@/asset/thumbnail.svg";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -141,6 +140,7 @@ export default function WritePostPage() {
 
       setTempImages((prev) => new Map(prev).set(tempId, { file, objectUrl }));
     } catch (error) {
+      console.error(error);
       alert("이미지 처리 실패");
     }
   };
@@ -176,6 +176,7 @@ export default function WritePostPage() {
             new Map(prev).set(tempId, { file, objectUrl })
           );
         } catch (error) {
+          console.error(error);
           alert("이미지 처리 실패");
         }
 
@@ -195,6 +196,7 @@ export default function WritePostPage() {
 
     try {
       const formData = new FormData();
+
       formData.append("title", title);
       formData.append("content", content);
       formData.append("category", category || "Uncategorized");
@@ -204,26 +206,28 @@ export default function WritePostPage() {
         formData.append("thumbnail", imageFile);
       }
 
-      // 본문 이미지들 추가
+      // 본문 이미지들 추가 (tempImages)
       tempImages.forEach((imageData, tempId) => {
         formData.append("contentImages", imageData.file);
         formData.append("contentImageIds", tempId);
       });
 
+      // 서버 요청
       const response = await axios.post("/api/posts", formData);
 
       setResult(response.data);
-
-      let index = 0;
-      tempImages.forEach((imageData, tempId) => {
-        formData.append(`contentImage_${index}`, imageData.file);
-        formData.append(`contentImageId_${index}`, tempId);
-        index++;
-      });
-      formData.append("contentImageCount", index.toString());
       alert("글 작성 성공!");
-    } catch (error: any) {
-      alert(`글 작성 실패: ${error.response?.data?.error || error.message}`);
+    } catch (error: unknown) {
+      console.error("글 작성 실패:", error);
+
+      // Axios 에러 안전 처리
+      if (axios.isAxiosError(error)) {
+        alert(`글 작성 실패: ${error.response?.data?.error || error.message}`);
+      } else if (error instanceof Error) {
+        alert(`글 작성 실패: ${error.message}`);
+      } else {
+        alert("글 작성 실패: 알 수 없는 오류");
+      }
     } finally {
       setPostCreating(false);
     }
@@ -439,122 +443,159 @@ export default function WritePostPage() {
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      h1: ({ node, ...props }) => (
+                      h1: ({ ...props }) => (
                         <h1
                           className="text-3xl font-bold mb-4 mt-6"
                           {...props}
                         />
                       ),
-                      h2: ({ node, ...props }) => (
+                      h2: ({ ...props }) => (
                         <h2
                           className="text-2xl font-bold mb-3 mt-5"
                           {...props}
                         />
                       ),
-                      h3: ({ node, ...props }) => (
+                      h3: ({ ...props }) => (
                         <h3
                           className="text-xl font-bold mb-2 mt-4"
                           {...props}
                         />
                       ),
-                      p: ({ node, ...props }) => (
+                      p: ({ ...props }) => (
                         <p className="mb-4 leading-7" {...props} />
                       ),
-                      ul: ({ node, ...props }) => (
+                      ul: ({ ...props }) => (
                         <ul
                           className="list-disc list-inside mb-4 space-y-2"
                           {...props}
                         />
                       ),
-                      ol: ({ node, ...props }) => (
+                      ol: ({ ...props }) => (
                         <ol
                           className="list-decimal list-inside mb-4 space-y-2"
                           {...props}
                         />
                       ),
-                      li: ({ node, ...props }) => (
-                        <li className="ml-4" {...props} />
-                      ),
-                      blockquote: ({ node, ...props }) => (
+                      li: ({ ...props }) => <li className="ml-4" {...props} />,
+                      blockquote: ({ ...props }) => (
                         <blockquote
                           className="border-l-4 border-gray-300 pl-4 italic my-4 text-gray-600"
                           {...props}
                         />
                       ),
-                      code: ({ node, inline, ...props }: any) =>
+                      code: ({
+                        inline,
+                        children,
+                        ...props
+                      }: React.DetailedHTMLProps<
+                        React.HTMLAttributes<HTMLElement>,
+                        HTMLElement
+                      > & { inline?: boolean }) =>
                         inline ? (
                           <code
                             className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-red-600"
                             {...props}
-                          />
+                          >
+                            {children}
+                          </code>
                         ) : (
                           <code
                             className="block bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono my-4"
                             {...props}
-                          />
+                          >
+                            {children}
+                          </code>
                         ),
-                      pre: ({ node, ...props }) => (
+                      pre: ({ ...props }) => (
                         <pre className="my-4" {...props} />
                       ),
-                      a: ({ node, ...props }) => (
+                      a: ({ ...props }) => (
                         <a
                           className="text-blue-600 hover:underline"
                           {...props}
                         />
                       ),
-                      strong: ({ node, ...props }) => (
+                      strong: ({ ...props }) => (
                         <strong className="font-bold" {...props} />
                       ),
-                      em: ({ node, ...props }) => (
+                      em: ({ ...props }) => (
                         <em className="italic" {...props} />
                       ),
-                      hr: ({ node, ...props }) => (
+                      hr: ({ ...props }) => (
                         <hr className="my-8 border-gray-300" {...props} />
                       ),
-                      img: ({ node, src, alt, ...props }: any) => {
-                        if (!src || src === "") return null;
-
+                      img: ({
+                        src,
+                        alt,
+                        ...props
+                      }: React.DetailedHTMLProps<
+                        React.ImgHTMLAttributes<HTMLImageElement>,
+                        HTMLImageElement
+                      >) => {
+                        if (
+                          !src ||
+                          typeof src !== "string" ||
+                          src.trim() === ""
+                        )
+                          return null;
                         if (src.startsWith("temp-")) {
                           const imageData = tempImages.get(src);
                           if (imageData) {
                             return (
                               <span className="flex justify-center my-4 block">
-                                <img
+                                <Image
                                   src={imageData.objectUrl}
                                   alt={alt || "이미지"}
+                                  width={800 as number}
+                                  height={600 as number}
                                   className="max-w-full h-auto rounded-lg"
-                                  {...props}
+                                  unoptimized
+                                  {...(props as Omit<
+                                    React.DetailedHTMLProps<
+                                      React.ImgHTMLAttributes<HTMLImageElement>,
+                                      HTMLImageElement
+                                    >,
+                                    "width" | "height" | "src" | "alt"
+                                  >)}
                                 />
                               </span>
                             );
                           }
                           return null;
                         }
-
                         return (
                           <span className="flex justify-center my-4 block">
-                            <img
+                            <Image
                               src={src}
                               alt={alt || "이미지"}
+                              width={800 as number}
+                              height={600 as number}
                               className="max-w-full h-auto rounded-lg"
-                              {...props}
+                              unoptimized
+                              {...(props as Omit<
+                                React.DetailedHTMLProps<
+                                  React.ImgHTMLAttributes<HTMLImageElement>,
+                                  HTMLImageElement
+                                >,
+                                "width" | "height" | "src" | "alt"
+                              >)}
                             />
                           </span>
                         );
                       },
-                      table: ({ node, ...props }) => (
+                      table: ({ ...props }) => (
                         <table
                           className="w-full border-collapse my-4"
                           {...props}
                         />
                       ),
-                      th: ({ node, ...props }) => (
+                      th: ({ ...props }) => (
                         <th
                           className="border border-gray-300 px-4 py-2 bg-gray-100 font-bold"
                           {...props}
                         />
                       ),
-                      td: ({ node, ...props }) => (
+                      td: ({ ...props }) => (
                         <td
                           className="border border-gray-300 px-4 py-2"
                           {...props}
