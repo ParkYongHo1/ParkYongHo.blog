@@ -1,5 +1,5 @@
 // lib/github/metadata/fetchExistingMetadata.ts
-import { AxiosInstance } from "axios";
+import { AxiosInstance, isAxiosError } from "axios";
 import { PostMetadata } from "@/types/post";
 
 export async function fetchExistingMetadata(
@@ -16,14 +16,14 @@ export async function fetchExistingMetadata(
 
     try {
       return JSON.parse(content);
-    } catch (parseError) {
+    } catch {
       console.warn(
         `깨진 메타데이터 파일 발견: ${path}. 빈 배열로 초기화합니다.`
       );
       return [];
     }
-  } catch (error: any) {
-    if (error.response?.status === 404) {
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 404) {
       return [];
     }
     throw error;
