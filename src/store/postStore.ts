@@ -1,5 +1,18 @@
 import { create } from "zustand";
 
+interface PostResult {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  thumbnail?: string;
+  contentImages?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PostStore {
   imageFile: File | null;
   imagePreview: string;
@@ -8,7 +21,7 @@ interface PostStore {
   category: string;
   tags: string;
   postCreating: boolean;
-  result: any;
+  result: PostResult | null;
   isPreviewMode: boolean;
 
   handlePreviewMode: () => void;
@@ -19,10 +32,11 @@ interface PostStore {
   setCategory: (category: string) => void;
   setTags: (tags: string) => void;
   setPostCreating: (flag: boolean) => void;
-  setResult: (res: any) => void;
+  setResult: (res: PostResult | null) => void;
+  resetStore: () => void;
 }
 
-export const usePostStore = create<PostStore>((set) => ({
+const initialState = {
   imageFile: null,
   imagePreview: "",
   title: "",
@@ -32,6 +46,10 @@ export const usePostStore = create<PostStore>((set) => ({
   postCreating: false,
   result: null,
   isPreviewMode: false,
+};
+
+export const usePostStore = create<PostStore>((set) => ({
+  ...initialState,
 
   handlePreviewMode: () => {
     set((state) => ({ isPreviewMode: !state.isPreviewMode }));
@@ -44,4 +62,5 @@ export const usePostStore = create<PostStore>((set) => ({
   setTags: (tags) => set({ tags }),
   setPostCreating: (flag) => set({ postCreating: flag }),
   setResult: (res) => set({ result: res }),
+  resetStore: () => set(initialState),
 }));

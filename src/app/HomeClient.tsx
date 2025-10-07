@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import thumbnail from "@/asset/thumbnail.svg";
-import calendar from "@/asset/calendar.svg";
-import readingTimer from "@/asset/readingTime.svg";
+import thumbnail from "../asset/thumbnail.svg";
+import calendar from "../asset/calendar.svg";
+import readingTimer from "../asset/readingTime.svg";
 
 interface Post {
   slug: string;
