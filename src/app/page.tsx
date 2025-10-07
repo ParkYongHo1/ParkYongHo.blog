@@ -1,4 +1,3 @@
-import { getGitHubProfile } from "./api/profile/route";
 import HomeClient from "./HomeClient";
 import axios from "axios";
 
@@ -26,6 +25,14 @@ interface PostFrontmatter {
   tags?: string[];
   thumbnail?: string;
   readingTime?: string;
+}
+interface GitHubProfile {
+  login: string;
+  name: string;
+  avatar_url: string;
+  bio: string | null;
+  public_repos: number;
+  followers: number;
 }
 async function getAllPosts(): Promise<PostMetadata[]> {
   try {
@@ -136,7 +143,27 @@ async function getAllPosts(): Promise<PostMetadata[]> {
     return [];
   }
 }
+async function getGitHubProfile(): Promise<GitHubProfile | null> {
+  try {
+    const owner = process.env.GITHUB_OWNER;
+    const token = process.env.GITHUB_TOKEN;
 
+    const response = await axios.get<GitHubProfile>(
+      `https://api.github.com/users/${owner}`,
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          Accept: "application/vnd.github+json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("GitHub 프로필 조회 실패:", error);
+    return null;
+  }
+}
 export default async function HomePage() {
   const posts = await getAllPosts();
   const profile = await getGitHubProfile();
