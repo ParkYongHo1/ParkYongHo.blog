@@ -119,23 +119,23 @@ export default async function PostDetailPage({
   return (
     <div className="min-h-screen">
       <div className="bg-white">
-        <div className="max-w-4xl mx-auto my-8 px-4">
-          <div className="flex justify-center mb-4">
-            <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+        <div className="max-w-4xl mx-auto my-4 sm:my-6 md:my-8 px-3 sm:px-4">
+          <div className="flex justify-center mb-3 sm:mb-4">
+            <span className="text-xs sm:text-sm bg-purple-100 text-purple-700 px-2 sm:px-3 py-1 rounded-full">
               {post.category}
             </span>
           </div>
-          <h1 className="flex justify-center text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="flex justify-center text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 text-center px-2">
             {post.title}
           </h1>
-          <div className="flex justify-center items-center gap-2 text-sm text-gray-600">
-            <div className="flex items-center text-sm text-gray-500">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+            <div className="flex items-center text-gray-500">
               <Image
                 src={calendar}
                 alt="날짜"
-                width={20}
-                height={20}
-                className="mr-1"
+                width={16}
+                height={16}
+                className="mr-1 sm:w-5 sm:h-5"
               />
               {post.date}
             </div>
@@ -143,18 +143,18 @@ export default async function PostDetailPage({
               <Image
                 src={readingTimer}
                 alt="읽는 시간"
-                width={16}
-                height={16}
-                className="mr-1"
+                width={14}
+                height={14}
+                className="mr-1 sm:w-4 sm:h-4"
               />
               <span>{post.readingTime}</span>
             </div>
           </div>
-          <div className="flex justify-center flex-wrap gap-2 mt-4">
+          <div className="flex justify-center flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4">
             {post.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
+                className="text-[10px] sm:text-xs text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded"
               >
                 #{tag}
               </span>
@@ -163,7 +163,7 @@ export default async function PostDetailPage({
         </div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4">
+      <div className="relative max-w-7xl mx-auto px-2 sm:px-4">
         <div className="max-w-4xl mx-auto">
           <PostContent
             content={post.content}
@@ -171,9 +171,11 @@ export default async function PostDetailPage({
             thumbnail={post.thumbnail}
           />
 
-          <div className="mt-16 mb-8">
-            <div className="border-t border-gray-200 pt-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">댓글</h2>
+          <div className="mt-8 sm:mt-12 md:mt-16 mb-6 sm:mb-8">
+            <div className="border-t border-gray-200 pt-6 sm:pt-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
+                댓글
+              </h2>
               <div className="bg-white rounded-lg">
                 <Giscus />
               </div>
