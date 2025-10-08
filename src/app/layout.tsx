@@ -20,7 +20,7 @@ export default function RootLayout({
       <head></head>
       <body suppressHydrationWarning>
         <Header />
-        <main className="w-[80%] mx-auto">
+        <main className=" mx-auto">
           <QueryProvider>{children}</QueryProvider>
         </main>
         <UpDownButton />
