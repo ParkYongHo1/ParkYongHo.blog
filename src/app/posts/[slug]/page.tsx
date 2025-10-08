@@ -101,7 +101,11 @@ async function getPostBySlug(slug: string): Promise<PostData | null> {
     return null;
   }
 }
-
+function extractPostId(slug: string): string {
+  // 마지막 하이픈(-) 뒤의 숫자를 ID로 추출
+  const match = slug.match(/-(\d+)$/);
+  return match ? match[1] : slug;
+}
 export default async function PostDetailPage({
   params,
 }: {
@@ -113,7 +117,7 @@ export default async function PostDetailPage({
   if (!post) {
     notFound();
   }
-
+  const postId = extractPostId(slug);
   return (
     <div className="min-h-screen">
       <div className="bg-white">
@@ -175,7 +179,7 @@ export default async function PostDetailPage({
                 댓글
               </h2>
               <div className="bg-white rounded-lg">
-                <Giscus />
+                <Giscus postId={postId} />
               </div>
             </div>
           </div>
