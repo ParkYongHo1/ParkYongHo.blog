@@ -155,79 +155,81 @@ export default function HomeClient({ posts, profile }: HomeClientProps) {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
           {/* 최신 게시글 */}
-          <Link
-            href={`/posts/${latestPost?.slug}`}
-            className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-          >
-            <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-purple-500 to-blue-500">
-              {latestPost?.thumbnail ? (
-                <Image
-                  src={latestPost.thumbnail}
-                  alt={latestPost.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  unoptimized
-                />
-              ) : (
-                <Image
-                  src={thumbnail}
-                  alt="썸네일"
-                  fill
-                  className="object-cover"
-                />
-              )}
-              <div className="absolute top-2 sm:top-4 left-2 sm:left-4">
-                <span className="bg-white border border-purple-600 text-purple-600 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-semibold">
-                  최신 게시글
-                </span>
-              </div>
-            </div>
-            <div className="p-3 sm:p-4 md:p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                  {latestPost?.category}
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 line-clamp-2">
-                {latestPost?.title}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600 line-clamp-2 sm:line-clamp-3 mb-3 sm:mb-4">
-                {latestPost?.excerpt}
-              </p>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-                {latestPost.tags.slice(0, 3).map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
-                  >
-                    #{tag}
+          {latestPost && (
+            <Link
+              href={`/posts/${latestPost.slug}`}
+              className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+            >
+              <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-purple-500 to-blue-500">
+                {latestPost.thumbnail ? (
+                  <Image
+                    src={latestPost.thumbnail}
+                    alt={latestPost.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
+                  />
+                ) : (
+                  <Image
+                    src={thumbnail}
+                    alt="썸네일"
+                    fill
+                    className="object-cover"
+                  />
+                )}
+                <div className="absolute top-2 sm:top-4 left-2 sm:left-4">
+                  <span className="bg-white border border-purple-600 text-purple-600 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-semibold">
+                    최신 게시글
                   </span>
-                ))}
-              </div>
-              <div className="flex justify-between items-center text-xs sm:text-sm">
-                <div className="flex items-center text-gray-500">
-                  <Image
-                    src={calendar}
-                    alt="날짜"
-                    width={16}
-                    height={16}
-                    className="mr-1 sm:w-5 sm:h-5"
-                  />
-                  {latestPost.date}
-                </div>
-                <div className="flex items-center text-gray-500">
-                  <Image
-                    src={readingTimer}
-                    alt="읽는 시간"
-                    width={16}
-                    height={16}
-                    className="mr-1 sm:w-5 sm:h-5"
-                  />
-                  <span>{latestPost.readingTime}</span>
                 </div>
               </div>
-            </div>
-          </Link>
+              <div className="p-3 sm:p-4 md:p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                    {latestPost.category}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 line-clamp-2">
+                  {latestPost.title}
+                </h2>
+                <p className="text-sm sm:text-base text-gray-600 line-clamp-2 sm:line-clamp-3 mb-3 sm:mb-4">
+                  {latestPost.excerpt}
+                </p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+                  {latestPost.tags.slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center text-xs sm:text-sm">
+                  <div className="flex items-center text-gray-500">
+                    <Image
+                      src={calendar}
+                      alt="날짜"
+                      width={16}
+                      height={16}
+                      className="mr-1 sm:w-5 sm:h-5"
+                    />
+                    {latestPost.date}
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <Image
+                      src={readingTimer}
+                      alt="읽는 시간"
+                      width={16}
+                      height={16}
+                      className="mr-1 sm:w-5 sm:h-5"
+                    />
+                    <span>{latestPost.readingTime}</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
 
           {/* GitHub 프로필 & 잔디 */}
           <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6">
