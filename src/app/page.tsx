@@ -26,6 +26,7 @@ interface PostFrontmatter {
   thumbnail?: string;
   readingTime?: string;
 }
+
 interface GitHubProfile {
   login: string;
   name: string;
@@ -34,14 +35,15 @@ interface GitHubProfile {
   public_repos: number;
   followers: number;
 }
+
 async function getAllPosts(): Promise<PostMetadata[]> {
   try {
     const owner = process.env.GITHUB_OWNER;
     const repo = process.env.GITHUB_REPO;
     const token = process.env.GITHUB_TOKEN;
 
-    const yearsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts`;
-    const { data: years } = await axios.get<GitHubFile[]>(yearsUrl, {
+    const postsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts`;
+    const { data: files } = await axios.get<GitHubFile[]>(postsUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
@@ -50,88 +52,61 @@ async function getAllPosts(): Promise<PostMetadata[]> {
 
     const allPosts: PostMetadata[] = [];
 
-    for (const year of years) {
-      if (year.type !== "dir") continue;
+    for (const file of files) {
+      if (!file.name.endsWith(".mdx")) continue;
 
-      const monthsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts/${year.name}`;
-      const { data: months } = await axios.get<GitHubFile[]>(monthsUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-        },
-      });
+      try {
+        const { data: content } = await axios.get<string>(file.download_url);
+        const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
+        const match = content.match(frontmatterRegex);
 
-      for (const month of months) {
-        if (month.type !== "dir") continue;
+        if (!match) continue;
 
-        const postsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts/${year.name}/${month.name}`;
-        const { data: files } = await axios.get<GitHubFile[]>(postsUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/vnd.github+json",
-          },
+        const frontmatter = match[1];
+        const markdownContent = match[2];
+
+        const metadata: PostFrontmatter = {};
+        frontmatter.split("\n").forEach((line: string) => {
+          const [key, ...valueParts] = line.split(":");
+          if (key && valueParts.length) {
+            const value = valueParts
+              .join(":")
+              .trim()
+              .replace(/^["']|["']$/g, "");
+            if (key === "tags") {
+              metadata.tags = value
+                .replace(/^\[|\]$/g, "")
+                .split(",")
+                .map((t: string) => t.trim().replace(/^["']|["']$/g, ""));
+            } else {
+              (metadata as Record<string, string>)[key] = value;
+            }
+          }
         });
 
-        for (const file of files) {
-          if (!file.name.endsWith(".mdx")) continue;
+        const cleanContent = markdownContent
+          .replace(/!\[.*?\]\(.*?\)/g, "")
+          .replace(/#{1,6}\s/g, "")
+          .replace(/\*\*(.*?)\*\*/g, "$1")
+          .replace(/\*(.*?)\*/g, "$1")
+          .replace(/`(.*?)`/g, "$1")
+          .replace(/```[\s\S]*?```/g, "")
+          .trim();
 
-          try {
-            const { data: content } = await axios.get<string>(
-              file.download_url
-            );
-            const frontmatterRegex =
-              /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
-            const match = content.match(frontmatterRegex);
+        const slug = file.name.replace(".mdx", "");
 
-            if (!match) continue;
-
-            const frontmatter = match[1];
-            const markdownContent = match[2];
-
-            const metadata: PostFrontmatter = {};
-            frontmatter.split("\n").forEach((line: string) => {
-              const [key, ...valueParts] = line.split(":");
-              if (key && valueParts.length) {
-                const value = valueParts
-                  .join(":")
-                  .trim()
-                  .replace(/^["']|["']$/g, "");
-                if (key === "tags") {
-                  metadata.tags = value
-                    .replace(/^\[|\]$/g, "")
-                    .split(",")
-                    .map((t: string) => t.trim().replace(/^["']|["']$/g, ""));
-                } else {
-                  (metadata as Record<string, string>)[key] = value;
-                }
-              }
-            });
-
-            const cleanContent = markdownContent
-              .replace(/!\[.*?\]\(.*?\)/g, "")
-              .replace(/#{1,6}\s/g, "")
-              .replace(/\*\*(.*?)\*\*/g, "$1")
-              .replace(/\*(.*?)\*/g, "$1")
-              .replace(/`(.*?)`/g, "$1")
-              .replace(/```[\s\S]*?```/g, "")
-              .trim();
-
-            const slug = file.name.replace(".mdx", "");
-
-            allPosts.push({
-              slug,
-              title: metadata.title || "",
-              date: metadata.date || "",
-              category: metadata.category || "",
-              tags: metadata.tags || [],
-              thumbnail: metadata.thumbnail || "",
-              excerpt: cleanContent.slice(0, 150) + "...",
-              readingTime: metadata.readingTime || "",
-            });
-          } catch (error) {
-            console.error(`파일 처리 실패: ${file.name}`, error);
-          }
-        }
+        allPosts.push({
+          slug,
+          title: metadata.title || "",
+          date: metadata.date || "",
+          category: metadata.category || "",
+          tags: metadata.tags || [],
+          thumbnail: metadata.thumbnail || "",
+          excerpt: cleanContent.slice(0, 150) + "...",
+          readingTime: metadata.readingTime || "",
+        });
+      } catch (error) {
+        console.error(`파일 처리 실패: ${file.name}`, error);
       }
     }
 
@@ -143,6 +118,7 @@ async function getAllPosts(): Promise<PostMetadata[]> {
     return [];
   }
 }
+
 async function getGitHubProfile(): Promise<GitHubProfile | null> {
   try {
     const owner = process.env.GITHUB_OWNER;
@@ -164,6 +140,7 @@ async function getGitHubProfile(): Promise<GitHubProfile | null> {
     return null;
   }
 }
+
 export default async function HomePage() {
   const posts = await getAllPosts();
   const profile = await getGitHubProfile();
