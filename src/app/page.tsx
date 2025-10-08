@@ -53,6 +53,7 @@ async function getAllPosts(): Promise<PostMetadata[]> {
     const allPosts: PostMetadata[] = [];
 
     for (const file of files) {
+      if (file.type === "dir") continue;
       if (!file.name.endsWith(".mdx")) continue;
 
       try {
@@ -99,11 +100,11 @@ async function getAllPosts(): Promise<PostMetadata[]> {
           slug,
           title: metadata.title || "",
           date: metadata.date || "",
-          category: metadata.category || "",
+          category: metadata.category || "Uncategorized",
           tags: metadata.tags || [],
           thumbnail: metadata.thumbnail || "",
           excerpt: cleanContent.slice(0, 150) + "...",
-          readingTime: metadata.readingTime || "",
+          readingTime: metadata.readingTime || "1분",
         });
       } catch (error) {
         console.error(`파일 처리 실패: ${file.name}`, error);
@@ -115,6 +116,10 @@ async function getAllPosts(): Promise<PostMetadata[]> {
     );
   } catch (error) {
     console.error("포스트 목록 조회 실패:", error);
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.log("mdx/posts 폴더가 아직 없습니다. 빈 배열을 반환합니다.");
+      return [];
+    }
     return [];
   }
 }
