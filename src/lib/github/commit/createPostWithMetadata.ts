@@ -1,11 +1,7 @@
 // lib/github/commit/createPostWithMetadata.ts
 import { AxiosInstance } from "axios";
 import { PostMetadata } from "@/types/post";
-import {
-  updateCategoryMetadata,
-  updateTagMetadata,
-  updateYearlyMetadata,
-} from "../metadata";
+import { updateCategoryMetadata, updateTagMetadata } from "../metadata";
 import { commitFilesToGitHub, FileToCommit } from "./commitFilesToGitHub";
 
 export async function createPostWithMetadata(
@@ -15,7 +11,6 @@ export async function createPostWithMetadata(
   mdxFilePath: string,
   mdxContent: string,
   post: PostMetadata,
-  year: number,
   additionalFiles: FileToCommit[]
 ): Promise<void> {
   const files: FileToCommit[] = [...additionalFiles];
@@ -42,16 +37,6 @@ export async function createPostWithMetadata(
     );
     files.push({ path: tagPath, content: tagContent });
   }
-
-  const yearlyPath = `mdx/metadata/yearly/${year}.json`;
-  const yearlyContent = await updateYearlyMetadata(
-    githubApi,
-    owner,
-    repo,
-    post,
-    year
-  );
-  files.push({ path: yearlyPath, content: yearlyContent });
 
   await commitFilesToGitHub(
     githubApi,

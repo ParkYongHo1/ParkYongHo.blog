@@ -39,7 +39,6 @@ export default function WritePostPage() {
     new Map()
   );
 
-  // Object URL 정리
   useEffect(() => {
     return () => {
       tempImages.forEach(({ objectUrl }) => {
@@ -51,7 +50,6 @@ export default function WritePostPage() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 파일 크기 체크 (5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert("이미지 크기는 5MB를 초과할 수 없습니다.");
         return;
@@ -206,10 +204,12 @@ export default function WritePostPage() {
         formData.append("thumbnail", imageFile);
       }
 
-      // 본문 이미지들 추가 (tempImages)
-      tempImages.forEach((imageData, tempId) => {
-        formData.append("contentImages", imageData.file);
-        formData.append("contentImageIds", tempId);
+      const imageArray = Array.from(tempImages.entries());
+      formData.append("contentImageCount", imageArray.length.toString());
+
+      imageArray.forEach(([tempId, imageData], index) => {
+        formData.append(`contentImage_${index}`, imageData.file);
+        formData.append(`contentImageId_${index}`, tempId);
       });
 
       // 서버 요청

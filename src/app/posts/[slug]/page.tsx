@@ -38,11 +38,9 @@ async function getPostBySlug(slug: string): Promise<PostData | null> {
     const token = process.env.GITHUB_TOKEN;
 
     const decodedSlug = decodeURIComponent(slug);
-    const slugParts = decodedSlug.split("-");
-    const year = slugParts[0];
-    const month = slugParts[1];
 
-    const postsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts/${year}/${month}`;
+    const postsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts`;
+
     const { data: files } = await axios.get<GitHubFile[]>(postsUrl, {
       headers: {
         Authorization: `Bearer ${token}`,

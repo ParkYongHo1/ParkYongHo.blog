@@ -59,11 +59,10 @@ export async function POST(request: NextRequest) {
     const dateStr = now.format("YYYY-MM-DD HH:mm");
     const dateOnly = now.format("YYYY-MM-DD");
     const year = now.year();
-    const month = now.format("MM");
 
     const slug = generateSlug(title, timestamp);
     const fileName = `${dateOnly}-${slug}.mdx`;
-    const filePath = `mdx/posts/${year}/${month}/${fileName}`;
+    const filePath = `mdx/posts/${fileName}`;
 
     const tags = parseTags(tagsString);
     const additionalFiles: FileToCommit[] = [];
@@ -133,7 +132,6 @@ export async function POST(request: NextRequest) {
       filePath,
       mdxContent,
       postMetadata,
-      year,
       additionalFiles
     );
 
