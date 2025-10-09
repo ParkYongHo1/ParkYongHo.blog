@@ -1,0 +1,188 @@
+---
+title: "Next.js 블로그에 SEO 최적화 적용해보기"
+date: 2025-10-09 21:09
+category: "사이드 프로젝트이드 프로젝트"
+tags: ["Next.js", "SEO"]
+thumbnail: "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1760011760814-c6337055-77f4-4f4e-a0b0-517e182fa3cd.jpg"
+readingTime: "5분"
+---
+
+# Next.js 블로그에 SEO 최적화 완벽 가이드
+
+개발 블로그를 만들었지만 검색에 노출되지 않는다면? **SEO(Search Engine Optimization)** 설정이 필요합니다. 이 글에서는 Next.js에 필수적인 SEO 설정 3가지를 정리해봤습니다.
+
+---
+
+## 1. robots.txt란 무엇인가?
+
+### robots.txt의 역할
+
+**robots.txt**는 검색 엔진 크롤러에게 "어떤 페이지를 크롤링해도 되고, 어떤 페이지는 하면 안 되는지"를 알려주는 파일입니다.
+
+**예시:**
+```
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://park-yong-ho-blog.vercel.app/sitemap.xml
+```
+### Next.js에서 robots.txt 생성
+
+Next.js 13 이상에서는 `app/robots.ts` 파일을 만들어서 동적으로 생성할 수 있습니다.
+```
+// app/robots.ts
+import { MetadataRoute } from "next";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/api/", "/_next/", "/admin/"],
+    },
+    sitemap: "https://park-yong-ho-blog.vercel.app/sitemap.xml",
+  };
+}
+```
+
+장점:
+
+자동으로 /robots.txt 경로에 생성됨
+환경별로 다른 설정 가능 (개발/프로덕션)
+TypeScript 타입 안전성
+
+확인 방법
+
+배포 후 브라우저에서:
+https://park-yong-ho-blog.vercel.app/robots.txt
+
+## 2. sitemap.xml 생성하기
+### sitemap.xml이란?
+`사이트맵`은 웹사이트의 **"지도"** 입니다. 모든 페이지 URL을 나열해서 검색 엔진이 효율적으로 크롤링할 수 있게 합니다.
+동적 sitemap 생성
+블로그는 게시글이 계속 추가되므로, 동적으로 sitemap을 생성해야 합니다.
+``` 
+app/sitemap.ts
+
+import { MetadataRoute } from "next";
+import axios from "axios";
+
+interface GitHubFile {
+  name: string;
+  download_url: string;
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const owner = process.env.GITHUB_OWNER;
+  const repo = process.env.GITHUB_REPO;
+  const token = process.env.GITHUB_TOKEN;
+
+  const postsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/mdx/posts`;
+
+  try {
+    // GitHub에서 포스트 목록 가져오기
+    const { data: files } = await axios.get<GitHubFile[]>(postsUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
+
+    // 각 포스트의 URL 생성
+    const posts = files.map((file) => {
+      const slug = file.name.replace(".mdx", "");
+      return {
+        url: `https://park-yong-ho-blog.vercel.app/posts/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      };
+    });
+
+    return [
+      // 홈페이지
+      {
+        url: "https://park-yong-ho-blog.vercel.app",
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 1,
+      },
+      // 모든 포스트
+      ...posts,
+    ];
+  } catch (error) {
+    console.error("Sitemap 생성 실패:", error);
+    // 에러 시 최소한 홈페이지는 포함
+    return [
+      {
+        url: "https://park-yong-ho-blog.vercel.app",
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 1,
+      },
+    ];
+  }
+}
+```
+주요 속성 설명
+
+- url: 페이지의 전체 URL
+- lastModified: 마지막 수정 날짜
+- changeFrequency: 업데이트 빈도 (daily, weekly, monthly 등)
+- priority: 중요도 (0.0 ~ 1.0, 홈페이지는 보통 1.0)
+
+확인 방법
+
+https://park-yong-ho-blog.vercel.app/sitemap.xml
+
+XML 형식으로 모든 페이지 URL이 나열되어야 합니다.
+
+## 3. Google Search Console 연동
+
+### Google Search Console이란?
+
+구글에서 제공하는 무료 SEO 도구입니다. 사이트 검색 성능, 색인 상태, 문제점 등을 확인할 수 있습니다.
+
+설정 단계
+
+1. 속성 추가
+
+- Google Search Console 접속
+- **"속성 추가"** 클릭
+- URL 접두어 방식 선택
+- 블로그 URL 입력: https://park-yong-ho-blog.vercel.app
+
+2. 소유권 확인
+ 
+- 구글에서 제공하는 HTML 파일 다운로드
+- Next.js의 public 폴더에 복사
+- 배포 완료 후 구글에서 "확인" 클릭
+
+즉시 확인 가능한 것
+
+✅ robots.txt 접근:
+
+https://park-yong-ho-blog.vercel.app/robots.txt
+
+✅ sitemap.xml 접근:
+
+https://park-yong-ho-blog.vercel.app/sitemap.xml
+
+✅ Google Search Console 소유권 확인 완료
+
+시간이 걸리는 것 (며칠 ~ 몇 주)
+
+⏳ 구글 검색 결과에 노출
+
+⏳ Search Console에서 색인 상태 확인
+
+⏳ 검색 트래픽 데이터 수집
+
+색인 요청으로 빠르게 등록하기
+
+Google Search Console → URL 검사 → 블로그 URL 입력 → "색인 생성 요청"
+
+![붙여넣은 이미지](https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1760011760817-9a6d156f-5643-49ec-8e28-387589d1437e.png)
+
+최적화를 진행해주었더니 LightHouse SEO검사 100점이 나왔다!
+
