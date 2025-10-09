@@ -1,7 +1,7 @@
 ---
 title: "Next.js 블로그에 SEO 최적화 적용해보기"
 date: 2025-10-09 21:09
-category: "사이드 프로젝트이드 프로젝트"
+category: "사이드 프로젝트"
 tags: ["Next.js", "SEO"]
 thumbnail: "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1760011760814-c6337055-77f4-4f4e-a0b0-517e182fa3cd.jpg"
 readingTime: "5분"
@@ -20,15 +20,18 @@ readingTime: "5분"
 **robots.txt**는 검색 엔진 크롤러에게 "어떤 페이지를 크롤링해도 되고, 어떤 페이지는 하면 안 되는지"를 알려주는 파일입니다.
 
 **예시:**
+
 ```
 User-agent: *
 Allow: /
 Disallow: /api/
 Sitemap: https://park-yong-ho-blog.vercel.app/sitemap.xml
 ```
+
 ### Next.js에서 robots.txt 생성
 
 Next.js 13 이상에서는 `app/robots.ts` 파일을 만들어서 동적으로 생성할 수 있습니다.
+
 ```
 // app/robots.ts
 import { MetadataRoute } from "next";
@@ -57,11 +60,14 @@ TypeScript 타입 안전성
 https://park-yong-ho-blog.vercel.app/robots.txt
 
 ## 2. sitemap.xml 생성하기
+
 ### sitemap.xml이란?
+
 `사이트맵`은 웹사이트의 **"지도"** 입니다. 모든 페이지 URL을 나열해서 검색 엔진이 효율적으로 크롤링할 수 있게 합니다.
 동적 sitemap 생성
 블로그는 게시글이 계속 추가되므로, 동적으로 sitemap을 생성해야 합니다.
-``` 
+
+```
 app/sitemap.ts
 
 import { MetadataRoute } from "next";
@@ -124,6 +130,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 }
 ```
+
 주요 속성 설명
 
 - url: 페이지의 전체 URL
@@ -153,7 +160,7 @@ XML 형식으로 모든 페이지 URL이 나열되어야 합니다.
 - 블로그 URL 입력: https://park-yong-ho-blog.vercel.app
 
 2. 소유권 확인
- 
+
 - 구글에서 제공하는 HTML 파일 다운로드
 - Next.js의 public 폴더에 복사
 - 배포 완료 후 구글에서 "확인" 클릭
@@ -185,4 +192,3 @@ Google Search Console → URL 검사 → 블로그 URL 입력 → "색인 생성
 ![붙여넣은 이미지](https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1760011760817-9a6d156f-5643-49ec-8e28-387589d1437e.png)
 
 최적화를 진행해주었더니 LightHouse SEO검사 100점이 나왔다!
-
