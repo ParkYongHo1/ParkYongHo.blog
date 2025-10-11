@@ -1,0 +1,386 @@
+---
+title: "TypeScript로 통합 에러 핸들러 만들기"
+date: 2025-10-12 02:42
+category: "사이드 프로젝트"
+tags: ["Typescript", "타입가드", "에러 핸들러"]
+thumbnail: "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1760204564627-82cbed39-d62a-4ab9-9e82-76830ba9f52b.png"
+readingTime: "9분"
+---
+
+## 문제 상황
+
+Next.js API 라우트에서 에러 처리를 하다 보면 catch 블록이 점점 길어진다.
+
+```
+export async function POST(request: NextRequest) {
+  try {
+    // 비즈니스 로직...
+  } catch (error) {
+    console.error(error);
+
+    // GitHub API 에러
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+
+      if (status === 400) {
+        return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
+      }
+      if (status === 401) {
+        return NextResponse.json({ error: "인증 실패" }, { status: 401 });
+      }
+      if (status === 429) {
+        return NextResponse.json({ error: "요청 한도 초과" }, { status: 429 });
+      }
+      return NextResponse.json({ error: message }, { status: status || 500 });
+    }
+
+    // 환경 검증 에러
+    if (error.message.includes("production")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    // GitHub 설정 에러
+    if (error.message.includes("GitHub")) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 일반 에러
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+  }
+}
+```
+
+**문제점:**
+- catch 블록이 너무 길어짐 (20줄 이상)
+- 상태 코드(400, 401, 403, 429, 500)가 여기저기 흩어져 있음
+- 에러 메시지로 타입을 구분하는 건 너무 불안정함
+- 다른 API 라우트에서 똑같은 코드를 또 작성해야 함
+
+## 해결 방법: 통합 에러 핸들러
+
+모든 에러를 한 곳에서 처리하는 통합 핸들러를 만들면 이 문제를 해결할 수 있다.
+
+### 1단계: 커스텀 에러 타입 만들기
+
+먼저 상태 코드를 포함하는 에러 타입이 필요하다.
+
+```
+// lib/errors/apiError.ts
+
+export interface ApiErrorType extends Error {
+  statusCode: number;
+  isApiError: true;  // 식별자
+}
+
+export const createApiError = (
+  message: string,
+  statusCode: number = 500
+): ApiErrorType => {
+  const error = new Error(message) as ApiErrorType;
+  error.statusCode = statusCode;
+  error.isApiError = true;
+  return error;
+};
+```
+
+사용법:
+
+```
+throw createApiError("접근 권한이 없습니다.", 403);
+throw createApiError("GitHub 설정이 올바르지 않습니다.", 500);
+```
+
+### 2단계: 타입 가드 추가
+
+통합 핸들러에서 에러 타입을 구분하려면 타입 가드가 필요하다.
+
+**타입 가드란?** 런타임에 타입을 확인하고, TypeScript에게 "이 변수는 이 타입이 맞다"고 알려주는 함수다.
+
+```
+export const isApiError = (error: unknown): error is ApiErrorType => {
+  //                                        ↑ 타입 가드 문법
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "isApiError" in error &&
+    (error as ApiErrorType).isApiError === true
+  );
+};
+```
+
+#### 타입 가드의 효과
+
+타입 가드가 없으면:
+
+```
+const handleError = (error: unknown) => {
+  console.log(error.statusCode);  // ❌ 에러! unknown 타입에는 statusCode 없음
+};
+```
+
+타입 가드가 있으면:
+
+```
+const handleError = (error: unknown) => {
+  if (isApiError(error)) {
+    console.log(error.statusCode);  // ✅ 접근 가능!
+    console.log(error.message);     // ✅ 접근 가능!
+  }
+};
+```
+
+#### null 체크가 필요한 이유
+
+JavaScript에는 유명한 버그가 있다.
+
+```
+typeof null === "object"  // true! 😱
+```
+
+그래서 `error !== null` 체크를 빼먹으면 런타임 에러가 발생한다.
+
+```
+// ❌ null 체크 없으면
+export const isApiError = (error: unknown): error is ApiErrorType => {
+  return (
+    typeof error === "object" &&  // null도 통과!
+    "isApiError" in error  // 💥 TypeError! null에는 속성이 없음
+  );
+};
+
+// ✅ null 체크 필수
+export const isApiError = (error: unknown): error is ApiErrorType => {
+  return (
+    typeof error === "object" &&
+    error !== null &&  // null 제외
+    "isApiError" in error &&
+    (error as ApiErrorType).isApiError === true
+  );
+};
+```
+
+### 3단계: 통합 에러 핸들러 구현
+
+이제 모든 걸 합쳐서 통합 핸들러를 만든다.
+
+```
+// lib/api/errorHandler.ts
+import { NextResponse } from "next/server";
+import axios from "axios";
+import { isApiError } from "@/lib/errors/apiError";
+
+export const handleApiError = (error: unknown) => {
+  console.error("API 라우트 오류:", error);
+
+  // 1. 커스텀 에러
+  if (isApiError(error)) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.statusCode }
+    );
+  }
+
+  // 2. Axios 에러
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status || 500;
+    const message = error.response?.data?.message || "API 오류";
+    return NextResponse.json({ error: message }, { status });
+  }
+
+  // 3. 일반 Error
+  if (error instanceof Error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // 4. 알 수 없는 에러
+  return NextResponse.json(
+    { error: "서버 내부 오류가 발생했습니다." },
+    { status: 500 }
+  );
+};
+```
+
+## 결과: 깔끔한 API 라우트
+
+이제 catch 블록이 한 줄로 줄어든다.
+
+### Before (20줄)
+
+```
+export async function POST(request: NextRequest) {
+  try {
+    // 비즈니스 로직...
+  } catch (error) {
+    console.error(error);
+
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+      if (status === 400) {
+        return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
+      }
+      if (status === 401) {
+        return NextResponse.json({ error: "인증 실패" }, { status: 401 });
+      }
+      if (status === 429) {
+        return NextResponse.json({ error: "요청 한도 초과" }, { status: 429 });
+      }
+      return NextResponse.json({ error: message }, { status: status || 500 });
+    }
+
+    if (error.message.includes("production")) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+  }
+}
+```
+
+### After (1줄)
+
+```
+import { createApiError } from "@/lib/errors/apiError";
+import { handleApiError } from "@/lib/api/errorHandler";
+
+export async function POST(request: NextRequest) {
+  try {
+    if (process.env.NODE_ENV === "production") {
+      throw createApiError("글 작성은 개발 환경에서만 가능합니다.", 403);
+    }
+
+    const config = validateEnvironment();
+    if (!config) {
+      throw createApiError("GitHub 설정이 올바르지 않습니다.", 500);
+    }
+
+    // 비즈니스 로직...
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return handleApiError(error);  // ✨ 한 줄!
+  }
+}
+```
+
+## 타입 가드의 동작 원리
+
+각 조건이 어떤 역할을 하는지 살펴보자.
+
+```
+export const isApiError = (error: unknown): error is ApiErrorType => {
+  return (
+    // 1단계: 객체인지 확인 (메시지, 상태 코드를 담는 객체)
+    typeof error === "object" &&
+    
+    // 2단계: null 제외 (typeof null === "object"이므로 필수)
+    error !== null &&
+    
+    // 3단계: 식별자가 있는지 확인
+    "isApiError" in error &&
+    
+    // 4단계: 값이 true인지 확인 (정확한 검증)
+    (error as ApiErrorType).isApiError === true
+  );
+};
+```
+
+## 장점
+
+### 코드 품질
+- ✅ catch 블록이 한 줄로 단축
+- ✅ 에러 처리 로직이 한 곳에 집중
+- ✅ 재사용 가능 (모든 API 라우트에서 사용)
+- ✅ 테스트하기 쉬움
+
+### 타입 안전성
+- ✅ 런타임 타입 체크
+- ✅ TypeScript 타입 추론 자동화
+- ✅ 자동완성 지원
+- ✅ 컴파일 타임 에러 방지
+
+## 마치며
+
+통합 에러 핸들러를 만들면 catch 블록이 깔끔해지고, 에러 처리 로직을 한 곳에서 관리할 수 있다. 타입 가드를 활용하면 런타임 안전성도 확보할 수 있다.
+
+---
+
+## 전체 코드
+
+### lib/errors/apiError.ts
+```
+export interface ApiErrorType extends Error {
+  statusCode: number;
+  isApiError: true;
+}
+
+export const createApiError = (
+  message: string,
+  statusCode: number = 500
+): ApiErrorType => {
+  const error = new Error(message) as ApiErrorType;
+  error.statusCode = statusCode;
+  error.isApiError = true;
+  return error;
+};
+
+export const isApiError = (error: unknown): error is ApiErrorType => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "isApiError" in error &&
+    (error as ApiErrorType).isApiError === true
+  );
+};
+```
+
+### lib/api/errorHandler.ts
+```
+import { NextResponse } from "next/server";
+import axios from "axios";
+import { isApiError } from "@/lib/errors/apiError";
+
+export const handleApiError = (error: unknown) => {
+  console.error("API 라우트 오류:", error);
+
+  if (isApiError(error)) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.statusCode }
+    );
+  }
+
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status || 500;
+    const message = error.response?.data?.message || "API 오류";
+    return NextResponse.json({ error: message }, { status });
+  }
+
+  if (error instanceof Error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    { error: "서버 내부 오류가 발생했습니다." },
+    { status: 500 }
+  );
+};
+```
+
+### 사용 예시
+```
+import { createApiError } from "@/lib/errors/apiError";
+import { handleApiError } from "@/lib/api/errorHandler";
+
+export async function POST(request: NextRequest) {
+  try {
+    if (someCondition) {
+      throw createApiError("에러 메시지", 403);
+    }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+```

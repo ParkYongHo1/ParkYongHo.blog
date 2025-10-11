@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "2025-10-12-typescript로-통합-에러-핸들러-만들기-1760204564628",
+    "title": "TypeScript로 통합 에러 핸들러 만들기",
+    "date": "2025-10-12 02:42",
+    "category": "사이드 프로젝트",
+    "tags": [
+      "Typescript",
+      "타입가드",
+      "에러 핸들러"
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1760204564627-82cbed39-d62a-4ab9-9e82-76830ba9f52b.png",
+    "excerpt": "## 문제 상황\r\n\r\nNext.js API 라우트에서 에러 처리를 하다 보면 catch 블록이 점점 길어진다.\r\n\r\n```\r\nexport async function POST(request: NextRequest) {\r\n  try {\r\n    // 비즈니스 로직...\r\n...",
+    "readingTime": "9분"
+  }
+]
