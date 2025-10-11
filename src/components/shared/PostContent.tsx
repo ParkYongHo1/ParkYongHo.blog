@@ -8,8 +8,6 @@ import summary from "@/asset/summary.svg";
 
 interface PostContentProps {
   content: string;
-  title: string;
-  thumbnail?: string;
 }
 
 interface AISummary {
@@ -18,11 +16,7 @@ interface AISummary {
   conclusion: string;
 }
 
-export default function PostContent({
-  content,
-  title,
-  thumbnail,
-}: PostContentProps) {
+export default function PostContent({ content }: PostContentProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
   const [isAISummary, setIsAISummary] = useState(false);
@@ -257,19 +251,6 @@ ${summaryData.conclusion}`;
             </button>
           )}
         </div>
-
-        {thumbnail && (
-          <div className="max-w-4xl mx-auto px-4 py-8">
-            <div className="relative w-full h-96 rounded-xl overflow-hidden">
-              <Image
-                src={thumbnail}
-                alt={title}
-                fill
-                className="object-cover"
-              />
-            </div>
-          </div>
-        )}
 
         {isGenerating && (
           <div className="flex flex-col items-center justify-center py-20">

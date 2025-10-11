@@ -167,11 +167,7 @@ export default async function PostDetailPage({
 
       <div className="relative max-w-7xl mx-auto px-2 sm:px-4">
         <div className="max-w-4xl mx-auto">
-          <PostContent
-            content={post.content}
-            title={post.title}
-            thumbnail={post.thumbnail}
-          />
+          <PostContent content={post.content} />
 
           <div className="mt-8 sm:mt-12 md:mt-16 mb-6 sm:mb-8">
             <div className="border-t border-gray-200 pt-6 sm:pt-8">
