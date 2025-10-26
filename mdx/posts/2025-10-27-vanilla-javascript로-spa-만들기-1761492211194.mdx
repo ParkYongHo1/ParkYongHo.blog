@@ -1,0 +1,126 @@
+---
+title: "Vanilla Javascript로 SPA 만들기"
+date: 2025-10-27 00:23
+category: "SPA"
+tags: ["SPA", "자바스크립트"]
+thumbnail: "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1761492211191-032f6580-5096-4ae7-b696-9bd956be6a7a.png"
+readingTime: "7분"
+---
+
+회사에서 1년 정도 일을 하면서, 주임님과 선임님에 비해 나의 코딩 실력이 많이 부족하다는 것을 자주 느꼈다.
+조금만 어려운 업무가 생기면 자연스럽게 AI에 의존하게 되었고, 어느 순간부터는 “AI 없이는 제대로 일을 못하겠다”는 생각까지 들 때가 있었다.
+
+이런 습관을 고치고, 자바스크립트의 심화 개념을 스스로 이해하고 싶어 예전에 항해플러스 프론트엔드 과정 1주차 과제로 진행했던 **SPA(Single Page Application) 만들기**를 다시 복습하기로 했다.
+
+당시에는 마감에 쫓겨 빠르게 제출하는 데 집중했지만, 이번에는 코드를 하나씩 뜯어보며 실제 동작 방식을 완전히 이해하는 것을 목표로 했다.
+
+복습을 진행하면서, 이 과제 속에는 렌더링 과정, 이벤트 위임, 클로저, 디자인 패턴 등 평소 이론으로만 알고 있던 개념들이 자연스럽게 녹아 있다는 걸 깨달았다.
+
+이번 글에서는 그 과제를 다시 정리하며, SPA를 직접 구현하면서 배운 자바스크립트의 핵심 개념과 적용 과정을 기록하고자 한다.
+
+### SPA 렌더링과 옵저버 패턴 활용
+
+SPA를 만들면서 가장 먼저 마주한 문제는 페이지 렌더링 구조였다.
+단순히 HTML을 교체하는 것이 아니라, URL이 변경되면 해당 경로에 맞는 컴포넌트를 렌더링해야 했다.
+
+이를 해결하기 위해 SPA 라우터를 4개의 모듈로 나누어 구현했다.
+
+createObserver.js — 옵저버 패턴 구현 (상태 변경 시 자동 렌더링 트리거)
+
+createRouter.js — 라우팅 핵심 로직 (path 매칭, pushState, popstate 이벤트 처리)
+
+router.js — 전역 라우터 인스턴스 관리 (싱글톤 패턴)
+
+render.js — 현재 경로에 맞는 컴포넌트를 렌더링
+
+이렇게 나누니 각 파일의 역할이 명확해지고, 라우팅의 전체 동작 흐름을 구조적으로 이해할 수 있었다.
+
+**createObserver.js**
+
+```
+export const createObserver = () => {
+  const listeners = new Set();
+  const subscribe = (fn) => listeners.add(fn);
+  const notify = () => listeners.forEach((listener) => listener());
+  return { subscribe, notify };
+};
+```
+
+Set을 사용한 이유는 단순하다.
+같은 함수를 여러 번 구독해도 중복 실행되지 않도록 하기 위해서다.
+notify()가 호출되면 등록된 모든 리스너가 한 번씩만 실행된다.
+
+**createRouter.js**
+
+```
+export const createRouter = (routes) => {
+  const { subscribe, notify } = createObserver();
+  const getPath = () => window.location.pathname;
+  const getTarget = () => routes[getPath()];
+
+  const push = (path) => {
+    window.history.pushState(null, null, path);
+    notify();
+  };
+
+  window.addEventListener("popstate", () => notify());
+
+  return { getPath, subscribe, push, getTarget };
+};
+```
+
+
+이 구조의 핵심은 URL 변경과 렌더링을 완전히 분리했다는 점이다.
+
+push(path)가 호출되면 pushState로 URL만 변경하고,
+notify()를 통해 구독자에게 변경 사실을 알린다.
+
+뒤로가기나 앞으로가기(popstate 이벤트)가 발생해도 notify()를 통해 렌더링이 다시 이루어진다.
+
+이렇게 관심사를 분리해두면, 나중에 렌더링 로직을 바꿔도 라우터 코드를 수정할 필요가 없다.
+
+**router.js**
+
+```
+export const router = {
+  value: null,
+  get() {
+    return this.value;
+  },
+  set(newValue) {
+    this.value = newValue;
+  },
+};
+```
+
+이 패턴의 목적은 전역에서 하나의 라우터 인스턴스만 관리하기 위함이다.
+여러 모듈이 import { router }를 하더라도 모두 같은 객체를 참조하므로,
+어디서든 동일한 라우터에 접근할 수 있다.
+
+**render.js**
+
+```
+export const render = () => {
+  const $root = document.getElementById("root");
+
+  try {
+    const Page = router.get().getTarget() ?? NotFoundPage;
+    $root.innerHTML = Page();
+  } catch (e) {
+    console.log(e);
+  }
+};
+```
+
+여기서 ??(Null 병합 연산자)는
+라우터가 해당 경로를 찾지 못했을 때 NotFoundPage를 보여주기 위해 사용했다.
+|| 대신 ??를 쓴 이유는 falsy 값이 아닌 null이나 undefined일 때만 대체값을 사용하기 위해서다.
+
+## 마무리
+
+이 과정을 통해 **라우팅이 단순히 URL을 바꾸는 게 아니라, 상태 관리의 일부**라는 걸 배웠다.
+SPA의 렌더링 구조를 직접 구현하면서 자바스크립트의 옵저버 패턴, 싱글톤, 관심사 분리 같은 개념이
+단순히 책 속의 이론이 아니라, 실제로 유용하게 쓰이는 설계 원리라는 것도 체감할 수 있었다.
+
+다음 글에서는 이벤트 처리를 다룰 예정이다.
+특히 이벤트 위임과 버블링을 중심으로, DOM 이벤트를 효율적으로 다루는 방법을 정리해보려 한다.
