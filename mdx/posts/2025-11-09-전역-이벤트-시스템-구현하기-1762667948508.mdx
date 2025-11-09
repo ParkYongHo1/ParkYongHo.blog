@@ -270,4 +270,33 @@ handleGlobalEvents → 이벤트 위임을 통해 발생한 요소의 handler만
 
 마지막으로 요약!
 
-![플로우.png](temp-1762667791893-e2b390ef-fe99-4c03-8b67-0e3629f09870)
+```
+[사용자 동작]
+      ↓
+(1) <button class="btn-delete">클릭</button> 클릭 발생
+      ↓
+──────────────────────────────────────────
+          이벤트 버블링 (Event Bubbling)
+──────────────────────────────────────────
+      ↓
+<button> → <div> → <body> → <document> → <window>
+      ↓
+(2) body에 등록된 전역 리스너(handleGlobalEvents) 실행
+      ↓
+──────────────────────────────────────────
+          이벤트 위임 (Event Delegation)
+──────────────────────────────────────────
+      ↓
+(3) handleGlobalEvents 내부에서
+    eventHandlers[e.type] 확인
+      ↓
+(4) 등록된 selector 목록 탐색
+    ├─ [data-link]
+    ├─ .btn-delete ✅ (일치)
+    └─ .tooltip
+      ↓
+(5) handlers[".btn-delete"](e) 실행
+      ↓
+(6) 해당 handler 동작 수행
+    → 예: 삭제 모달 열기, 데이터 삭제 등
+```
