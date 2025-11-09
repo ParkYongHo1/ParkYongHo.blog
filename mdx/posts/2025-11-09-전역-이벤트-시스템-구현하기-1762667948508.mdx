@@ -1,0 +1,273 @@
+---
+title: "전역 이벤트 시스템 구현하기"
+date: 2025-11-09 14:59
+category: "SPA"
+tags: ["클로저", "IFEE", "이벤트 위임", "이벤트 버블링"]
+thumbnail: "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1762667948505-f2f17b58-f1aa-4845-bd23-2ef34797890f.png"
+readingTime: "11분"
+---
+
+이번에는 전역 이벤트 시스템을 구현해보겠습니다.
+
+이 시스템은 “한 번의 이벤트 등록으로 여러 요소의 이벤트를 처리할 수 있게 하는 것”입니다.
+
+즉, 매번 개별 요소에 addEventListener를 붙이지 않아도, 공통된 전역 리스너가 이벤트를 감지하고 적절한 핸들러를 실행하도록 하는 구조입니다.
+
+아래는 주요 코드이다.
+```
+const eventHandlers = {};
+const handleGlobalEvents = (e) => {
+  const handlers = eventHandlers[e.type];
+  if (!handlers) return;
+
+  for (const selector in handlers) {
+    if (e.target.matches(selector) || e.target.closest(selector)) {
+      handlers[selector](e);
+      break;
+    }
+  }
+};
+
+export const registerGlobalEvents = (() => {
+  let flag = false;
+  return () => {
+    if (flag) return;
+
+    Object.keys(eventHandlers).forEach((eventType) => {
+      document.body.addEventListener(eventType, handleGlobalEvents);
+    });
+    flag = true;
+  };
+})();
+
+export const addEvent = (eventType, selector, handler) => {
+  if (!eventHandlers[eventType]) {
+    eventHandlers[eventType] = {};
+  }
+  eventHandlers[eventType][selector] = handler;
+};
+```
+이제 하나씩 확인해보자. 
+
+우선 registerGlobalEvents 함수이다.
+
+```
+export const registerGlobalEvents = (() => {
+  let flag = false;
+  return () => {
+    if (flag) return;
+
+    Object.keys(eventHandlers).forEach((eventType) => {
+      document.body.addEventListener(eventType, handleGlobalEvents);
+    });
+    flag = true;
+  };
+})();
+```
+여기서 봐야할 자바스크립트의 개념은 **클로저**와 **IIFE**이다. 
+
+### 🧩 클로저(Closure)
+
+일반적으로 함수 내부에 선언된 지역변수는 **스코프**가 달라 외부에서 접근할 수 없습니다. 하지만 **클로저**를 사용하면 가능해집니다. 클로저란, 함수 내부의 지역변수가 **렉시컬 환경**이라는 메모리 공간에 저장되고, 이 렉시컬 환경에 대한 참조를 유지하는 내부 함수를 반환함으로써, 외부에서도 해당 변수에 간접적으로 접근할 수 있게 하는 JavaScript의 특성입니다. 
+
+예시로
+```
+function outer() {
+  let privateVar = 10;  // 렉시컬 환경에 저장
+  
+  // 이 함수가 클로저
+  function inner() {
+    return privateVar;  // 렉시컬 환경 참조 유지
+  }
+  
+  return inner;  // 클로저 반환
+}
+
+const closure = outer();
+console.log(closure()); // 10 - 외부에서 접근 성공!
+```
+### ⚡ IIFE (Immediately Invoked Function Expression)
+
+IIFE는 정의하자마자 바로 실행되는 함수입니다.
+registerGlobalEvents는 IIFE를 통해 즉시 실행되어 **초기화 로직**을 수행하고, 내부의 flag 상태를 클로저로 유지합니다.
+
+즉, 이 함수는 아래와 같은 로직을 수행합니다:
+
+**1.** 처음 호출될 때 flag가 false이면 이벤트 리스너를 등록합니다.
+
+**2.** 이후 다시 호출되면 flag가 true이므로 중복 등록을 방지합니다.
+
+그런데 여기서 주목해야 할 점은 이벤트 리스너를 document.body에 한 번만 등록한다는 것입니다.
+
+이벤트 리스너를 document.body 에 등록하는 이유는,
+이벤트가 발생할 때 **이벤트 버블링(Event Bubbling)** 을 통해 하위 요소에서 상위 요소로 전달되기 때문입니다.
+### 🧭 이벤트 버블링
+
+이벤트가 발생하면, 해당 요소에서 시작해 상위 요소로 단계적으로 전파됩니다.
+
+이를 **이벤트 버블링**이라 하며, 예를 들어 다음과 같은 구조를 생각해볼 수 있습니다.
+```
+<html>
+  <body>
+    <div id="root">
+      <button>클릭</button>  // 1️⃣ 클릭 시작
+    </div>                   // 2️⃣ 버블링
+  </body>                     // 3️⃣ body 도달 ✅
+</html>                       // 4️⃣ document 도달
+                             // 5️⃣ window 도달
+```
+
+즉, 사용자가 <button>이나 <div> 같은 하위 요소를 클릭하더라도
+
+그 이벤트는 결국 body까지 도달하므로, body 하나에만 리스너를 등록해도 모든 하위 요소의 이벤트를 감지할 수 있습니다.
+
+따라서 SPA 환경처럼 body 내부의 DOM이 자주 바뀌는 경우,
+이 방식을 통해 불필요한 이벤트 등록을 줄이고 효율적인 전역 감지가 가능합니다.
+
+다음은 전역 이벤트 시스템에서 개별 이벤트를 등록하는 addEvent 함수입니다.
+### 🧩 addEvent 함수
+
+```
+export const addEvent = (eventType, selector, handler) => {
+  if (!eventHandlers[eventType]) {
+    eventHandlers[eventType] = {};
+  }
+  eventHandlers[eventType][selector] = handler;
+};
+```
+
+페이지 컴포넌트에서 addEvent 함수를 호출할 때는 세 개의 인자를 전달합니다.
+
+- eventType: "click", "submit" 등 이벤트의 종류
+- selector: 이벤트가 발생할 요소의 선택자 (예: ".btn-delete", "[data-link]")
+- handler: 해당 이벤트 발생 시 실행할 콜백 함수
+
+함수의 내부 로직은 다음과 같습니다.
+
+전달받은 eventType이 eventHandlers에 아직 등록되어 있지 않다면,
+해당 이벤트 타입을 키로 하는 빈 객체를 생성합니다.
+
+이후 그 객체에 selector를 키로, handler를 값으로 저장합니다.
+
+이 과정을 거치면, 이벤트 타입별로 선택자와 핸들러가 깔끔하게 구조화됩니다.
+
+addEvent가 여러 번 호출되면 eventHandlers 객체는 아래와 같은 형태로 누적됩니다.
+
+```
+// 초기 상태
+const eventHandlers = {};  // 빈 객체
+
+// addEvent 호출 후 구조
+eventHandlers = {
+  "click": {                              // eventType이 키
+    "[data-link]": handler함수,           // selector가 키, handler가 값
+    ".btn-delete": handler함수2
+  },
+  "submit": {
+    "form.login": handler함수3
+  },
+  "mouseover": {
+    ".tooltip": handler함수4
+  }
+}
+
+```
+이렇게 저장된 구조 덕분에,
+handleGlobalEvents 함수는 이벤트가 발생했을 때
+해당 이벤트 타입(click, submit, mouseover 등)에 맞는 핸들러들을 빠르게 찾아
+selector 매칭을 통해 올바른 핸들러를 실행할 수 있게 됩니다.
+
+마지막으로 handleGlobalEvents 함수입니다.
+
+앞서 addEvent를 통해 각 이벤트 타입별로 selector와 handler가 eventHandlers 객체에 저장되었습니다.
+이제 이벤트가 실제로 발생하면, handleGlobalEvents 함수가 이를 감지하고 적절한 핸들러를 호출합니다.
+
+### ⚙️ handleGlobalEvents 함수 
+```
+const handleGlobalEvents = (e) => {
+  const handlers = eventHandlers[e.type];
+  if (!handlers) return;
+
+  for (const selector in handlers) {
+    if (e.target.matches(selector) || e.target.closest(selector)) {
+      handlers[selector](e);
+      break;
+    }
+  }
+};
+```
+동작 과정을 단계별로 살펴보면 다음과 같습니다.
+
+1️⃣ 이벤트 발생 및 버블링
+
+사용자가 특정 요소(예: 버튼)를 클릭하면,
+해당 이벤트는 버블링(Event Bubbling) 을 통해 상위 요소인 body까지 전달됩니다.
+
+이때 registerGlobalEvents 에서 등록된 전역 리스너가 작동하며,
+이벤트 객체(e)가 handleGlobalEvents로 전달됩니다.
+
+2️⃣ 이벤트 타입별 핸들러 탐색
+
+먼저 eventHandlers[e.type]을 통해,
+현재 발생한 이벤트 타입(click, submit, mouseover 등)에 해당하는 핸들러 목록을 가져옵니다.
+
+예를 들어, 클릭 이벤트라면 다음과 같은 구조가 될 수 있습니다:
+```
+eventHandlers["click"] = {
+  "[data-link]": handler1,
+  ".btn-delete": handler2
+};
+```
+
+3️⃣ 실제 이벤트 발생 요소(selector 매칭)
+
+이제 for-in 문을 통해 등록된 selector들을 순회하면서,
+이벤트가 발생한 요소(e.target)이 해당 selector와 일치하는지 확인합니다.
+
+e.target.matches(selector) → 이벤트가 해당 selector 자체에서 발생했는가
+
+e.target.closest(selector) → 이벤트가 selector 하위 요소에서 발생했는가
+
+두 조건 중 하나라도 만족하면, 해당 selector의 handler를 호출합니다.
+
+4️⃣ 핸들러 실행
+
+selector가 일치하면,
+등록되어 있던 handler를 호출해 원하는 동작을 수행합니다.
+
+예를 들어 다음과 같이 등록되어 있었다면,
+```
+addEvent("click", ".btn-delete", (e) => {
+  console.log("삭제 버튼 클릭됨:", e.target);
+});
+```
+
+사용자가 .btn-delete 버튼을 클릭할 때
+handleGlobalEvents가 자동으로 이 핸들러를 찾아 실행하게 됩니다.
+
+handleGlobalEvents는 전역 이벤트 시스템의 핵심으로,
+**이벤트 위임(Event Delegation)** 을 구현한 부분입니다.
+버블링되어 올라온 이벤트를 한 곳(body)에서 받아,
+이벤트 타입과 selector 매칭을 통해 올바른 handler만 실행하는 구조입니다.
+
+### 🧩 이벤트 위임(Event Delegation)이란?
+
+이벤트 위임은 하위 요소 각각에 이벤트 리스너를 직접 등록하지 않고,
+공통된 상위 요소에 리스너를 한 번만 등록한 뒤
+이벤트가 발생한 요소(e.target)를 판별하여 처리하는 방식입니다.
+
+이는 **이벤트 버블링(Event Bubbling)** 을 기반으로 동작합니다
+즉, 하위 요소에서 발생한 이벤트가 상위 요소로 전달되기 때문에,
+부모 요소가 모든 자식 요소의 이벤트를 “위임받아” 처리할 수 있는 것이죠.
+즉,
+registerGlobalEvents → 버블링을 이용해 body에 전역 리스너 한 번만 등록
+
+addEvent → 각 이벤트 타입과 selector별로 handler 저장
+
+handleGlobalEvents → 이벤트 위임을 통해 발생한 요소의 handler만 실행
+
+이 세 가지가 연결되어 SPA 환경에서 한 번의 등록으로 모든 이벤트를 효율적으로 관리할 수 있는 시스템을 완성됩니다.
+
+마지막으로 요약!
+
+![플로우.png](temp-1762667791893-e2b390ef-fe99-4c03-8b67-0e3629f09870)
