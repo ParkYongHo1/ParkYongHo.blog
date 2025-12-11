@@ -1,0 +1,15 @@
+[
+  {
+    "slug": "2025-12-11-리액트-fsd-폴더구조-알아보기-1765426647864",
+    "title": "[리액트] FSD 폴더구조 알아보기",
+    "date": "2025-12-11 13:17",
+    "category": "개발",
+    "tags": [
+      "리액트",
+      "FSD"
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1765426647850-8a496fef-a8ad-4c9a-93d1-e9f74fdd3893.png",
+    "excerpt": "## “폴더 구조... 나만 이렇게 어렵나?”\r\n처음 리액트를 알게 되고 1년 정도 지나니\r\nUI 만들고, 상태 다루고, 라우팅하고, 전역 상태 관리하는 법 정도는 익숙해졌다.\r\n근데 폴더 구조?\r\n이건 여전히 감이 안 온다...\r\n\r\n> <p>“컴포넌트를 어디까지 쪼...",
+    "readingTime": "10분"
+  }
+]
