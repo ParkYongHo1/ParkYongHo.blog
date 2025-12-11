@@ -5,6 +5,10 @@ import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import summary from "@/asset/summary.svg";
+import rehypeHighlight from "rehype-highlight";
+
+import "highlight.js/styles/github-dark.css";
+import rehypeRaw from "rehype-raw";
 
 interface PostContentProps {
   content: string;
@@ -32,9 +36,7 @@ ${summaryData.summary}
 
 ## 💡 핵심 포인트
 
-${summaryData.keyPoints
-  .map((point, index) => `${index + 1}. ${point}`)
-  .join("\n\n")}
+${summaryData.keyPoints.map((point, index) => `${index + 1}. ${point}`).join("\n\n")}
 
 ---
 
@@ -100,65 +102,25 @@ ${summaryData.conclusion}`;
   };
 
   const markdownComponents = {
-    h1: ({ ...props }: React.ComponentPropsWithoutRef<"h1">) => (
-      <h1 className="text-3xl font-bold mb-4 mt-6" {...props} />
-    ),
-    h2: ({ ...props }: React.ComponentPropsWithoutRef<"h2">) => (
-      <h2 className="text-2xl font-bold mb-3 mt-5" {...props} />
-    ),
-    h3: ({ ...props }: React.ComponentPropsWithoutRef<"h3">) => (
-      <h3 className="text-xl font-bold mb-2 mt-4" {...props} />
-    ),
-    p: ({ ...props }: React.ComponentPropsWithoutRef<"p">) => (
-      <p className="mb-4 leading-7" {...props} />
-    ),
-    ul: ({ ...props }: React.ComponentPropsWithoutRef<"ul">) => (
-      <ul className="list-disc list-inside mb-4 space-y-2" {...props} />
-    ),
-    ol: ({ ...props }: React.ComponentPropsWithoutRef<"ol">) => (
-      <ol className="list-decimal list-inside mb-4 space-y-2" {...props} />
-    ),
-    li: ({ ...props }: React.ComponentPropsWithoutRef<"li">) => (
-      <li className="ml-4" {...props} />
-    ),
-    blockquote: ({
-      ...props
-    }: React.ComponentPropsWithoutRef<"blockquote">) => (
-      <blockquote
-        className="border-l-4 border-gray-300 pl-4 italic my-4 text-gray-600"
-        {...props}
-      />
-    ),
-    code: ({
-      inline,
-      ...props
-    }: React.ComponentPropsWithoutRef<"code"> & { inline?: boolean }) =>
+    h1: ({ ...props }: React.ComponentPropsWithoutRef<"h1">) => <h1 className="text-3xl font-bold mb-4 mt-6" {...props} />,
+    h2: ({ ...props }: React.ComponentPropsWithoutRef<"h2">) => <h2 className="text-2xl font-bold mb-3 mt-5" {...props} />,
+    h3: ({ ...props }: React.ComponentPropsWithoutRef<"h3">) => <h3 className="text-xl font-bold mb-2 mt-4" {...props} />,
+    p: ({ ...props }: React.ComponentPropsWithoutRef<"p">) => <p className="mb-4 leading-7" {...props} />,
+    ul: ({ ...props }: React.ComponentPropsWithoutRef<"ul">) => <ul className="list-disc list-inside mb-4 space-y-2" {...props} />,
+    ol: ({ ...props }: React.ComponentPropsWithoutRef<"ol">) => <ol className="list-decimal list-inside mb-4 space-y-2" {...props} />,
+    li: ({ ...props }: React.ComponentPropsWithoutRef<"li">) => <li className="ml-4" {...props} />,
+    blockquote: ({ ...props }: React.ComponentPropsWithoutRef<"blockquote">) => <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600" {...props} />,
+    code: ({ inline, ...props }: React.ComponentPropsWithoutRef<"code"> & { inline?: boolean }) =>
       inline ? (
-        <code
-          className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-red-600"
-          {...props}
-        />
+        <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-red-600" {...props} />
       ) : (
-        <code
-          className="block bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono my-4"
-          {...props}
-        />
+        <code className="block bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono my-4" {...props} />
       ),
-    pre: ({ ...props }: React.ComponentPropsWithoutRef<"pre">) => (
-      <pre className="my-4" {...props} />
-    ),
-    a: ({ ...props }: React.ComponentPropsWithoutRef<"a">) => (
-      <a className="text-blue-600 hover:underline" {...props} />
-    ),
-    strong: ({ ...props }: React.ComponentPropsWithoutRef<"strong">) => (
-      <strong className="font-bold" {...props} />
-    ),
-    em: ({ ...props }: React.ComponentPropsWithoutRef<"em">) => (
-      <em className="italic" {...props} />
-    ),
-    hr: ({ ...props }: React.ComponentPropsWithoutRef<"hr">) => (
-      <hr className="my-8 border-gray-300" {...props} />
-    ),
+    pre: ({ ...props }: React.ComponentPropsWithoutRef<"pre">) => <pre className="my-4" {...props} />,
+    a: ({ ...props }: React.ComponentPropsWithoutRef<"a">) => <a className="text-blue-600 hover:underline" {...props} />,
+    strong: ({ ...props }: React.ComponentPropsWithoutRef<"strong">) => <strong className="font-bold" {...props} />,
+    em: ({ ...props }: React.ComponentPropsWithoutRef<"em">) => <em className="italic" {...props} />,
+    hr: ({ ...props }: React.ComponentPropsWithoutRef<"hr">) => <hr className="my-8 border-gray-300" {...props} />,
     img: ({ src, alt }: React.ComponentPropsWithoutRef<"img">) => {
       if (!src || typeof src !== "string") return null;
 
@@ -177,11 +139,7 @@ ${summaryData.conclusion}`;
         return (
           <span className="flex justify-center my-4 block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt={alt || "이미지"}
-              className="max-w-full h-auto rounded-lg"
-            />
+            <img src={src} alt={alt || "이미지"} className="max-w-full h-auto rounded-lg" />
           </span>
         );
       }
@@ -195,27 +153,15 @@ ${summaryData.conclusion}`;
               width={800}
               height={450}
               className="rounded-lg w-full h-auto"
-              unoptimized={
-                src.startsWith("http") &&
-                !src.includes(process.env.NEXT_PUBLIC_DOMAIN || "")
-              }
+              unoptimized={src.startsWith("http") && !src.includes(process.env.NEXT_PUBLIC_DOMAIN || "")}
             />
           </span>
         </span>
       );
     },
-    table: ({ ...props }: React.ComponentPropsWithoutRef<"table">) => (
-      <table className="w-full border-collapse my-4" {...props} />
-    ),
-    th: ({ ...props }: React.ComponentPropsWithoutRef<"th">) => (
-      <th
-        className="border border-gray-300 px-4 py-2 bg-gray-100 font-bold"
-        {...props}
-      />
-    ),
-    td: ({ ...props }: React.ComponentPropsWithoutRef<"td">) => (
-      <td className="border border-gray-300 px-4 py-2" {...props} />
-    ),
+    table: ({ ...props }: React.ComponentPropsWithoutRef<"table">) => <table className="w-full border-collapse my-4" {...props} />,
+    th: ({ ...props }: React.ComponentPropsWithoutRef<"th">) => <th className="border border-gray-300 px-4 py-2 bg-gray-100 font-bold" {...props} />,
+    td: ({ ...props }: React.ComponentPropsWithoutRef<"td">) => <td className="border border-gray-300 px-4 py-2" {...props} />,
   };
 
   return (
@@ -230,13 +176,7 @@ ${summaryData.conclusion}`;
             >
               {!isGenerating && (
                 <>
-                  <Image
-                    src={summary}
-                    alt="요약"
-                    width={20}
-                    height={20}
-                    className="filter invert"
-                  />
+                  <Image src={summary} alt="요약" width={20} height={20} className="filter invert" />
                 </>
               )}
               <span>AI 요약</span>
@@ -255,17 +195,12 @@ ${summaryData.conclusion}`;
         {isGenerating && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mb-4"></div>
-            <p className="text-gray-600 text-lg">
-              AI가 글을 요약하고 있습니다...
-            </p>
+            <p className="text-gray-600 text-lg">AI가 글을 요약하고 있습니다...</p>
           </div>
         )}
 
         {!isGenerating && (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={markdownComponents}
-          >
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight, rehypeRaw]} components={markdownComponents}>
             {isAISummary ? displayedText : content}
           </ReactMarkdown>
         )}
