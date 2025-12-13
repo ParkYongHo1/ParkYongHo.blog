@@ -1,0 +1,15 @@
+[
+  {
+    "slug": "2025-12-13-use-훅-자세히-알아보기-1-1765619682825",
+    "title": "use 훅 자세히 알아보기 (1)",
+    "date": "2025-12-13 18:54",
+    "category": "개발",
+    "tags": [
+      "React",
+      "Hooks"
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/ParkYongHo1/ParkYongHo.blog/main/mdx/images/1765619682818-ea9c2a91-d79f-48e0-890e-10a4ff6983be.png",
+    "excerpt": "\r\n\r\n최근 사이드 프로젝트를 하나 시작했다.\r\n\r\n서비스 전반에서 공통으로 사용할 **검색창(Search Bar)** 을 만들고 있었고, \r\n\r\nUX를 조금 더 좋게 만들고 싶어서 흔히 사용하는 **퀵 액션(Ctrl + K / Cmd + K)** 을 구현하기로 했다....",
+    "readingTime": "13분"
+  }
+]
