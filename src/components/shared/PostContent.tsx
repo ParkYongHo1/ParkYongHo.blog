@@ -27,79 +27,79 @@ export default function PostContent({ content }: PostContentProps) {
   const [displayedText, setDisplayedText] = useState("");
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const formatSummaryContent = (summaryData: AISummary): string => {
-    return `## 📝 AI 요약
+  //   const formatSummaryContent = (summaryData: AISummary): string => {
+  //     return `## 📝 AI 요약
 
-${summaryData.summary}
+  // ${summaryData.summary}
 
----
+  // ---
 
-## 💡 핵심 포인트
+  // ## 💡 핵심 포인트
 
-${summaryData.keyPoints.map((point, index) => `${index + 1}. ${point}`).join("\n\n")}
+  // ${summaryData.keyPoints.map((point, index) => `${index + 1}. ${point}`).join("\n\n")}
 
----
+  // ---
 
-## ✅ 결론
+  // ## ✅ 결론
 
-${summaryData.conclusion}`;
-  };
+  // ${summaryData.conclusion}`;
+  //   };
 
-  const generateAISummary = async () => {
-    setIsGenerating(true);
-    setIsTransitioning(true);
+  // const generateAISummary = async () => {
+  //   setIsGenerating(true);
+  //   setIsTransitioning(true);
 
-    try {
-      const response = await fetch("/api/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
+  //   try {
+  //     const response = await fetch("/api/summarize", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ content }),
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      const summaryData: AISummary = {
-        summary: data.summary || "",
-        keyPoints: data.keyPoints || [],
-        conclusion: data.conclusion || "",
-      };
+  //     const summaryData: AISummary = {
+  //       summary: data.summary || "",
+  //       keyPoints: data.keyPoints || [],
+  //       conclusion: data.conclusion || "",
+  //     };
 
-      setAiSummary(summaryData);
-      const aiContentString = formatSummaryContent(summaryData);
+  //     setAiSummary(summaryData);
+  //     const aiContentString = formatSummaryContent(summaryData);
 
-      setIsGenerating(false);
-      setIsAISummary(true);
-      setDisplayedText(aiContentString);
-    } catch (error) {
-      console.error("요약 생성 실패:", error);
-      alert("요약 중 오류가 발생했습니다.");
-      setIsAISummary(false);
-      setIsGenerating(false);
-    } finally {
-      setIsTransitioning(false);
-    }
-  };
+  //     setIsGenerating(false);
+  //     setIsAISummary(true);
+  //     setDisplayedText(aiContentString);
+  //   } catch (error) {
+  //     console.error("요약 생성 실패:", error);
+  //     alert("요약 중 오류가 발생했습니다.");
+  //     setIsAISummary(false);
+  //     setIsGenerating(false);
+  //   } finally {
+  //     setIsTransitioning(false);
+  //   }
+  // };
 
-  const switchToOriginal = () => {
-    setIsAISummary(false);
-    setDisplayedText("");
-  };
+  // const switchToOriginal = () => {
+  //   setIsAISummary(false);
+  //   setDisplayedText("");
+  // };
 
-  const toggleSummary = async () => {
-    if (isTransitioning) return;
+  // const toggleSummary = async () => {
+  //   if (isTransitioning) return;
 
-    if (!isAISummary && !aiSummary) {
-      await generateAISummary();
-    } else if (isAISummary && aiSummary) {
-      switchToOriginal();
-    } else if (!isAISummary && aiSummary) {
-      setIsTransitioning(true);
-      const aiContentString = formatSummaryContent(aiSummary);
-      setIsAISummary(true);
-      setDisplayedText(aiContentString);
-      setIsTransitioning(false);
-    }
-  };
+  //   if (!isAISummary && !aiSummary) {
+  //     await generateAISummary();
+  //   } else if (isAISummary && aiSummary) {
+  //     switchToOriginal();
+  //   } else if (!isAISummary && aiSummary) {
+  //     setIsTransitioning(true);
+  //     const aiContentString = formatSummaryContent(aiSummary);
+  //     setIsAISummary(true);
+  //     setDisplayedText(aiContentString);
+  //     setIsTransitioning(false);
+  //   }
+  // };
 
   const markdownComponents = {
     h1: ({ ...props }: React.ComponentPropsWithoutRef<"h1">) => <h1 className="text-3xl font-bold mb-4 mt-6" {...props} />,
@@ -167,7 +167,7 @@ ${summaryData.conclusion}`;
   return (
     <article className="prose prose-lg max-w-none bg-white my-4">
       <div className="min-h-[500px] py-4 prose prose-sm max-w-none border-t">
-        <div className="flex justify-end px-4 mb-4 not-prose">
+        {/* <div className="flex justify-end px-4 mb-4 not-prose">
           {!isAISummary ? (
             <button
               onClick={toggleSummary}
@@ -190,7 +190,7 @@ ${summaryData.conclusion}`;
               <span>원본 글 보기</span>
             </button>
           )}
-        </div>
+        </div> */}
 
         {isGenerating && (
           <div className="flex flex-col items-center justify-center py-20">
